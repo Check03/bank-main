@@ -15,21 +15,12 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/dashboard" element={
-            <PrivateRoute>
-              <Dashboard />
-            </PrivateRoute>
-          } />
-          <Route path="/transfer" element={
-            <PrivateRoute>
-              <Transfer />
-            </PrivateRoute>
-          } />
+          <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/transfer" element={<PrivateRoute><Transfer /></PrivateRoute>} />
           <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         </Routes>
       </AuthProvider>
     </Router>
   );
 }
-
 export default App;
