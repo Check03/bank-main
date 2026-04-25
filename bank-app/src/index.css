@@ -10,13 +10,40 @@ body {
     sans-serif;
   background-color: #f3f4f6;
   color: #1f2937;
+  line-height: 1.5;
 }
 
 button {
   font-family: inherit;
 }
 
-input:focus {
-  outline: none;
-  border-color: #1e3a8a;
+input, button, textarea {
+  font-size: 16px; /* предотвращает зум на iOS */
+}
+
+/* Контейнер для всего контента */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Медиа-запросы для планшетов */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+  .container {
+    padding: 0 0.75rem;
+  }
+}
+
+/* Медиа-запросы для телефонов */
+@media (max-width: 480px) {
+  body {
+    font-size: 13px;
+  }
+  .container {
+    padding: 0 0.5rem;
+  }
 }
