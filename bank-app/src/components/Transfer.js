@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
-import { doc, getDoc, runTransaction, collection, addDoc } from "firebase/firestore";
+import { doc, runTransaction, collection } from "firebase/firestore";
+import { query, where, getDocs } from "firebase/firestore"; 
 
 export default function Transfer() {
   const { currentUser } = useAuth();
@@ -33,7 +34,6 @@ export default function Transfer() {
     setLoading(true);
 
     try {
-      // Ищем получателя по email
       const usersRef = collection(db, "users");
       const q = query(usersRef, where("email", "==", recipientEmail));
       const querySnapshot = await getDocs(q);
@@ -45,10 +45,8 @@ export default function Transfer() {
       }
 
       const recipientDoc = querySnapshot.docs[0];
-      const recipientData = recipientDoc.data();
       const recipientId = recipientDoc.id;
 
-      // Выполняем транзакцию для перевода
       await runTransaction(db, async (transaction) => {
         const senderRef = doc(db, "users", currentUser.uid);
         const senderSnap = await transaction.get(senderRef);
@@ -66,11 +64,9 @@ export default function Transfer() {
           throw new Error("Данные получателя не найдены");
         }
 
-        // Обновляем балансы
         transaction.update(senderRef, { balance: senderBalance - amountNum });
         transaction.update(recipientRef, { balance: recipientSnap.data().balance + amountNum });
 
-        // Добавляем запись о транзакции
         const transactionRef = collection(db, "transactions");
         transaction.set(doc(transactionRef), {
           from: currentUser.uid,
@@ -135,9 +131,6 @@ export default function Transfer() {
     </div>
   );
 }
-
-// Добавляем недостающий импорт
-import { query, where, getDocs } from "firebase/firestore";
 
 const styles = {
   container: { display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh" },

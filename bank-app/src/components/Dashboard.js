@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { doc, getDoc, collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
+import { doc, collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 
 export default function Dashboard() {
