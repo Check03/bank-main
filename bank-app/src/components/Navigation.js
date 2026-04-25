@@ -19,24 +19,20 @@ export default function Navigation() {
   if (!currentUser) return null;
 
   return (
-    <nav style={styles.nav}>
-      <div style={styles.navContainer}>
-        <Link to="/dashboard" style={styles.logo}>
-          Банк "Надёжный"
-        </Link>
-        <div style={styles.navLinks}>
-          <Link to="/dashboard" style={styles.link}>Главная</Link>
-          <Link to="/transfer" style={styles.link}>Перевод</Link>
-          <button onClick={handleLogout} style={styles.logoutBtn}>
-            Выйти
-          </button>
+    <nav style={navStyles.nav}>
+      <div style={navStyles.navContainer}>
+        <Link to="/dashboard" style={navStyles.logo}>Банк "Надёжный"</Link>
+        <div style={navStyles.navLinks}>
+          <Link to="/dashboard" style={navStyles.link}>Главная</Link>
+          <Link to="/transfer" style={navStyles.link}>Перевод</Link>
+          <button onClick={handleLogout} style={navStyles.logoutBtn}>Выйти</button>
         </div>
       </div>
     </nav>
   );
 }
 
-const styles = {
+const navStyles = {
   nav: { backgroundColor: "#1e3a8a", padding: "1rem", color: "white" },
   navContainer: { maxWidth: "1200px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" },
   logo: { color: "white", fontSize: "1.5rem", fontWeight: "bold", textDecoration: "none" },
