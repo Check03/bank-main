@@ -8,86 +8,57 @@ export default function Dashboard() {
   const [userData, setUserData] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!currentUser) {
-      setLoading(false);
-      return;
-    }
+    if (!currentUser) return;
 
+    // Загрузка данных пользователя
     const userDocRef = doc(db, "users", currentUser.uid);
-    const unsubscribeUser = onSnapshot(userDocRef,
-      (docSnap) => {
-        if (docSnap.exists()) {
-          setUserData(docSnap.data());
-        } else {
-          setError("Данные пользователя не найдены");
-        }
-      },
-      (err) => {
-        console.error("Ошибка загрузки пользователя:", err);
-        setError("Ошибка загрузки профиля");
-        setLoading(false);
+    const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setUserData(docSnap.data());
       }
-    );
+    });
 
+    // Загрузка транзакций (где пользователь отправитель или получатель)
     const transactionsRef = collection(db, "transactions");
+    const q = query(
+      transactionsRef,
+      where("from", "in", [currentUser.uid, "dummy"]), // Firestore требует массив, но нам нужно OR, поэтому два запроса
+      orderBy("timestamp", "desc")
+    );
+    // Лучше сделать два запроса и объединить, но для простоты сделаем один с условием
+    // Используем два запроса
     const qFrom = query(transactionsRef, where("from", "==", currentUser.uid), orderBy("timestamp", "desc"));
     const qTo = query(transactionsRef, where("to", "==", currentUser.uid), orderBy("timestamp", "desc"));
 
-    let fromTransactions = [];
-    let toTransactions = [];
-
-    const combineAndSet = () => {
-      const all = [...fromTransactions, ...toTransactions];
-      all.sort((a, b) => (b.timestamp?.toDate?.() || 0) - (a.timestamp?.toDate?.() || 0));
-      setTransactions(all);
-      setLoading(false);
-    };
-
-    const unsubscribeFrom = onSnapshot(qFrom,
-      (snapshot) => {
-        fromTransactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        combineAndSet();
-      },
-      (err) => {
-        console.error("Ошибка загрузки исходящих транзакций:", err);
-        setError("Ошибка загрузки истории");
+    const unsubscribeFrom = onSnapshot(qFrom, (snapshot) => {
+      const fromTransactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const unsubscribeTo = onSnapshot(qTo, (snapshotTo) => {
+        const toTransactions = snapshotTo.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const all = [...fromTransactions, ...toTransactions];
+        all.sort((a, b) => b.timestamp?.toDate?.() - a.timestamp?.toDate?.());
+        setTransactions(all);
         setLoading(false);
-      }
-    );
-
-    const unsubscribeTo = onSnapshot(qTo,
-      (snapshot) => {
-        toTransactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        combineAndSet();
-      },
-      (err) => {
-        console.error("Ошибка загрузки входящих транзакций:", err);
-        setError("Ошибка загрузки истории");
-        setLoading(false);
-      }
-    );
+      });
+      return () => unsubscribeTo();
+    });
 
     return () => {
       unsubscribeUser();
       unsubscribeFrom();
-      unsubscribeTo();
     };
   }, [currentUser]);
 
   if (loading) return <div style={styles.loading}>Загрузка...</div>;
-  if (error) return <div style={styles.error}>{error}</div>;
-  if (!userData) return <div style={styles.error}>Пользователь не найден</div>;
 
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <h2>Добро пожаловать, {userData.name}!</h2>
+        <h2>Добро пожаловать, {userData?.name}!</h2>
         <div style={styles.balanceCard}>
           <p style={styles.balanceLabel}>Ваш баланс</p>
-          <p style={styles.balanceAmount}>{userData.balance?.toLocaleString()} ₽</p>
+          <p style={styles.balanceAmount}>{userData?.balance?.toLocaleString()} ₽</p>
         </div>
       </div>
 
@@ -140,6 +111,5 @@ const styles = {
   transactionDesc: { fontSize: "0.8rem", color: "#6b7280", marginTop: "0.25rem" },
   transactionDate: { fontSize: "0.7rem", color: "#9ca3af", marginTop: "0.25rem" },
   transactionAmount: { fontSize: "1.1rem", fontWeight: "bold" },
-  loading: { textAlign: "center", marginTop: "3rem", fontSize: "1.2rem" },
-  error: { textAlign: "center", marginTop: "3rem", fontSize: "1.2rem", color: "#dc2626" }
+  loading: { textAlign: "center", marginTop: "3rem", fontSize: "1.2rem" }
 };

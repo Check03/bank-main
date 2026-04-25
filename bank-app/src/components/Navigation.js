@@ -43,5 +43,4 @@ const styles = {
   navLinks: { display: "flex", gap: "1.5rem", alignItems: "center" },
   link: { color: "white", textDecoration: "none", fontSize: "1rem" },
   logoutBtn: { backgroundColor: "#dc2626", color: "white", border: "none", padding: "0.5rem 1rem", borderRadius: "4px", cursor: "pointer" }
-  
 };
