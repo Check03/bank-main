@@ -9,7 +9,6 @@ const currencySymbols = {
   EUR: "€"
 };
 
-// Компонент курсов валют (без изменений, работает)
 function ExchangeRates() {
   const [rates, setRates] = useState({ usd: null, eur: null });
   const [loading, setLoading] = useState(true);
@@ -117,29 +116,20 @@ export default function Dashboard() {
         {accounts.length === 0 && <p>Счетов пока нет. Создайте первый в разделе «Счета».</p>}
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           {accounts.map(acc => (
-            <div key={acc.id} style={{ background: "#0f172a", borderRadius: "16px", padding: "1rem", textAlign: "center" }}>
-              <div>
+            <div key={acc.id} style={{ background: "#0f172a", borderRadius: "16px", padding: "1rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+              <div style={{ flex: "1", textAlign: "left" }}>
                 <h3 style={{ margin: 0 }}>
                   {acc.name} {acc.isDefault && <span style={{ fontSize: "0.8rem", background: "#3b82f6", padding: "0.2rem 0.5rem", borderRadius: "20px" }}>Основной</span>}
                 </h3>
-                <p style={{ color: "#94a3b8", margin: "0.25rem 0" }}>{acc.currency}</p>
+                <p style={{ color: "#94a3b8", margin: "0.25rem 0 0 0" }}>{acc.currency}</p>
               </div>
-              <div style={{
-                fontSize: "1.8rem",
-                fontWeight: "bold",
-                background: "linear-gradient(135deg, #60a5fa, #a855f7)",
-                backgroundClip: "text",
-                WebkitBackgroundClip: "text",
-                color: "transparent",
-                margin: "0.8rem 0",
-                wordBreak: "break-word"
-              }}>
+              <div style={{ flex: "2", textAlign: "center", fontSize: "1.8rem", fontWeight: "bold", background: "linear-gradient(135deg, #60a5fa, #a855f7)", backgroundClip: "text", WebkitBackgroundClip: "text", color: "transparent", wordBreak: "break-word" }}>
                 {acc.balance?.toLocaleString()} {currencySymbols[acc.currency] || acc.currency}
               </div>
               {!acc.isDefault && (
-                <button onClick={() => setDefaultAccount(acc.id)} style={{ background: "#334155", marginTop: "0.5rem" }}>
-                  Сделать основным
-                </button>
+                <div style={{ flex: "1", textAlign: "right" }}>
+                  <button onClick={() => setDefaultAccount(acc.id)} style={{ background: "#334155" }}>Сделать основным</button>
+                </div>
               )}
             </div>
           ))}
