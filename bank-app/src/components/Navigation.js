@@ -1,14 +1,13 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { signOut } from "firebase/auth";
-import { auth, db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase";
 import "./Navigation.css";
 
 export default function Navigation() {
   const { currentUser } = useAuth();
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // если не используется, можно удалить, но оставим на случай добавления логики
   const [isOpen, setIsOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -22,15 +21,6 @@ export default function Navigation() {
     };
     fetchRole();
   }, [currentUser]);
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate("/login");
-    } catch (error) {
-      console.error(error);
-    }
-  };
 
   if (!currentUser) return null;
 
