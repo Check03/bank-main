@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: bank-app   # 👈 обязательно
+        working-directory: bank-app
     steps:
       - uses: actions/checkout@v4
-      - run: npm ci
+      - run: npm install   # вместо npm ci
       - run: npm run build
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
