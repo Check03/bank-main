@@ -1,19 +1,15 @@
-// src/components/Dashboard.js
-
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 
-// Символы валют для красивого отображения
 const currencySymbols = {
   RUB: "₽",
   USD: "$",
   EUR: "€"
 };
 
-// Компонент для отображения курсов валют
-// Компонент для отображения курсов валют с автоматическим обновлением
+// Компонент курсов валют (без изменений, работает)
 function ExchangeRates() {
   const [rates, setRates] = useState({ usd: null, eur: null });
   const [loading, setLoading] = useState(true);
@@ -22,18 +18,12 @@ function ExchangeRates() {
 
   const fetchRates = async () => {
     try {
-      // Используем бесплатный API без CORS-проблем
       const response = await fetch('https://api.exchangerate-api.com/v4/latest/RUB');
       if (!response.ok) throw new Error('Ошибка загрузки');
       const data = await response.json();
-      setRates({
-        usd: data.rates.USD,    // сколько долларов за 1 рубль? нам нужно наоборот: сколько рублей за 1 доллар
-        eur: data.rates.EUR
-      });
+      setRates({ usd: data.rates.USD, eur: data.rates.EUR });
       setLastUpdate(new Date());
-      setError(null);
     } catch (err) {
-      console.error(err);
       setError('Не удалось загрузить курсы');
     } finally {
       setLoading(false);
@@ -42,14 +32,13 @@ function ExchangeRates() {
 
   useEffect(() => {
     fetchRates();
-    const interval = setInterval(fetchRates, 600000); // каждые 10 минут
+    const interval = setInterval(fetchRates, 600000);
     return () => clearInterval(interval);
   }, []);
 
   if (loading) return <div className="loader" style={{ width: "24px", height: "24px", margin: "0 auto" }}></div>;
   if (error) return <div className="error-message" style={{ fontSize: "0.8rem", textAlign: "center" }}>{error}</div>;
 
-  // Преобразуем курс из "долларов за рубль" в "рублей за доллар"
   const rubPerUsd = rates.usd ? (1 / rates.usd).toFixed(2) : '—';
   const rubPerEur = rates.eur ? (1 / rates.eur).toFixed(2) : '—';
   const eurPerUsd = rates.usd && rates.eur ? (rates.eur / rates.usd).toFixed(4) : '—';
@@ -123,24 +112,34 @@ export default function Dashboard() {
     <div className="container">
       <div className="card">
         <h2>Ваши счета</h2>
-        {/* 👇 Виджет курсов валют */}
         <ExchangeRates />
 
         {accounts.length === 0 && <p>Счетов пока нет. Создайте первый в разделе «Счета».</p>}
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           {accounts.map(acc => (
-            <div key={acc.id} style={{ background: "#0f172a", borderRadius: "16px", padding: "1rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
+            <div key={acc.id} style={{ background: "#0f172a", borderRadius: "16px", padding: "1rem", textAlign: "center" }}>
               <div>
                 <h3 style={{ margin: 0 }}>
                   {acc.name} {acc.isDefault && <span style={{ fontSize: "0.8rem", background: "#3b82f6", padding: "0.2rem 0.5rem", borderRadius: "20px" }}>Основной</span>}
                 </h3>
-                <p style={{ color: "#94a3b8" }}>{acc.currency}</p>
+                <p style={{ color: "#94a3b8", margin: "0.25rem 0" }}>{acc.currency}</p>
               </div>
-              <div style={{ fontSize: "1.8rem", fontWeight: "bold", background: "linear-gradient(135deg, #60a5fa, #a855f7)", backgroundClip: "text", WebkitBackgroundClip: "text", color: "transparent" }}>
+              <div style={{
+                fontSize: "1.8rem",
+                fontWeight: "bold",
+                background: "linear-gradient(135deg, #60a5fa, #a855f7)",
+                backgroundClip: "text",
+                WebkitBackgroundClip: "text",
+                color: "transparent",
+                margin: "0.8rem 0",
+                wordBreak: "break-word"
+              }}>
                 {acc.balance?.toLocaleString()} {currencySymbols[acc.currency] || acc.currency}
               </div>
               {!acc.isDefault && (
-                <button onClick={() => setDefaultAccount(acc.id)} style={{ background: "#334155" }}>Сделать основным</button>
+                <button onClick={() => setDefaultAccount(acc.id)} style={{ background: "#334155", marginTop: "0.5rem" }}>
+                  Сделать основным
+                </button>
               )}
             </div>
           ))}
