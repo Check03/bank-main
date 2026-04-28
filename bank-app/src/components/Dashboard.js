@@ -84,7 +84,7 @@ export default function Dashboard() {
   return (
   <div className="container">
     <div className="card">
-      <h2>Добро пожаловать, {userData.name}!</h2>
+      <h2>Добро пожаловать, {userData.displayName || userData.name || "Пользователь"}!</h2>
       <div style={styles.balanceCard}>
         <p style={styles.balanceLabel}>Ваш баланс</p>
         <p className="balance-amount" style={styles.balanceAmount}>{userData.balance?.toLocaleString()} ₽</p>

@@ -43,8 +43,8 @@ export default function Navigation() {
           <Link to="/dashboard" className="link" onClick={() => setIsOpen(false)}>Главная</Link>
           <Link to="/transfer" className="link" onClick={() => setIsOpen(false)}>Перевод</Link>
           <Link to="/contacts" className="link" onClick={() => setIsOpen(false)}>Контакты</Link>
+          <Link to="/account" className="link" onClick={() => setIsOpen(false)}>Аккаунт</Link>
           {isAdmin && <Link to="/admin" className="link" onClick={() => setIsOpen(false)}>Админка</Link>}
-          <button onClick={handleLogout} className="logout-btn">Выйти</button>
         </div>
       </div>
     </nav>

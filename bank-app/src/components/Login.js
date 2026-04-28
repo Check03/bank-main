@@ -20,45 +20,19 @@ export default function Login() {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h2 style={styles.title}>Вход в интернет-банк</h2>
-        {error && <div style={styles.error}>{error}</div>}
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={styles.input}
-            required
-          />
-          <input
-            type="password"
-            placeholder="Пароль"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={styles.input}
-            required
-          />
-          <button type="submit" style={styles.button}>Войти</button>
+    <div className="container" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh" }}>
+      <div className="card" style={{ maxWidth: "400px", width: "100%" }}>
+        <h2>Вход в интернет-банк</h2>
+        {error && <div className="error-message">{error}</div>}
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <input type="password" placeholder="Пароль" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <button type="submit" className="button-primary">Войти</button>
         </form>
-        <p style={styles.linkText}>
-          Нет аккаунта? <Link to="/register" style={styles.link}>Зарегистрироваться</Link>
+        <p style={{ textAlign: "center", marginTop: "1rem" }}>
+          Нет аккаунта? <Link to="/register" style={{ color: "#60a5fa" }}>Зарегистрироваться</Link>
         </p>
       </div>
     </div>
   );
 }
-
-const styles = {
-  container: { display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh" },
-  card: { backgroundColor: "white", padding: "2rem", borderRadius: "8px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)", width: "100%", maxWidth: "400px" },
-  title: { textAlign: "center", marginBottom: "1.5rem", color: "#1e3a8a" },
-  error: { backgroundColor: "#fee2e2", color: "#dc2626", padding: "0.5rem", borderRadius: "4px", marginBottom: "1rem", textAlign: "center" },
-  form: { display: "flex", flexDirection: "column", gap: "1rem" },
-  input: { padding: "0.75rem", border: "1px solid #ccc", borderRadius: "4px", fontSize: "1rem" },
-  button: { backgroundColor: "#1e3a8a", color: "white", padding: "0.75rem", border: "none", borderRadius: "4px", fontSize: "1rem", cursor: "pointer" },
-  linkText: { textAlign: "center", marginTop: "1rem" },
-  link: { color: "#1e3a8a", textDecoration: "none" }
-};

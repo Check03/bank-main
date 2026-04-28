@@ -141,7 +141,7 @@ export default function Admin() {
               {users.map(user => (
                 <tr key={user.id}>
                   <td data-label="Email">{user.email}</td>
-                  <td data-label="Имя">{user.name}</td>
+                  <td data-label="Имя">{user.displayName || user.name}</td>
                   <td data-label="Баланс">{user.balance?.toLocaleString()}</td>
                   <td data-label="Роль">{user.role || "user"}</td>
                   <td data-label="Действия" className="actions-cell">

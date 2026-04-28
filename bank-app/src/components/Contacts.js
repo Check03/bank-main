@@ -67,7 +67,7 @@ export default function Contacts() {
       await addDoc(contactsRef, {
         contactId: contactId,
         contactEmail: contactData.email,
-        contactName: contactData.name,
+        contactName: contactData.displayName || contactData.name,
         createdAt: new Date()
       });
 

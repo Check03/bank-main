@@ -22,6 +22,7 @@ function App() {
           <Route path="/contacts" element={<PrivateRoute><Contacts /></PrivateRoute>} />
           <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
           <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/account" element={<PrivateRoute><Account /></PrivateRoute>} />
         </Routes>
       </AuthProvider>
     </Router>
