@@ -1,27 +1,43 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
-import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, getDoc } from "firebase/firestore";
 
 export default function Admin() {
   const { currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
-
-  // Проверка, является ли текущий пользователь админом
   const [isAdmin, setIsAdmin] = useState(false);
+  const [checkingRole, setCheckingRole] = useState(true);
 
+  // Проверка роли текущего пользователя
   useEffect(() => {
-    const checkAdmin = async () => {
-      if (!currentUser) return;
-      const userDoc = await getDocs(doc(db, "users", currentUser.uid));
-      const role = userDoc.data()?.role;
-      setIsAdmin(role === "admin");
+    const checkAdminRole = async () => {
+      if (!currentUser) {
+        setCheckingRole(false);
+        return;
+      }
+      try {
+        const userDocRef = doc(db, "users", currentUser.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const role = userDoc.data().role;
+          setIsAdmin(role === "admin");
+        } else {
+          setIsAdmin(false);
+        }
+      } catch (error) {
+        console.error("Ошибка проверки роли:", error);
+        setIsAdmin(false);
+      } finally {
+        setCheckingRole(false);
+      }
     };
-    checkAdmin();
+    checkAdminRole();
   }, [currentUser]);
 
+  // Загрузка списка пользователей (только если админ)
   useEffect(() => {
     if (!isAdmin) return;
     const fetchUsers = async () => {
@@ -52,11 +68,19 @@ export default function Admin() {
     }
   };
 
+  if (checkingRole) {
+    return <div style={styles.loading}>Проверка прав доступа...</div>;
+  }
+
+  if (!currentUser) {
+    return <div style={styles.error}>Необходимо войти в систему</div>;
+  }
+
   if (!isAdmin) {
     return <div style={styles.error}>Доступ запрещён. Только для администратора.</div>;
   }
 
-  if (loading) return <div style={styles.loading}>Загрузка...</div>;
+  if (loading) return <div style={styles.loading}>Загрузка списка пользователей...</div>;
 
   return (
     <div style={styles.container}>
@@ -78,7 +102,11 @@ export default function Admin() {
                   {user.role !== "admin" ? (
                     <button onClick={() => changeRole(user.id, "admin")} style={styles.adminBtn}>Сделать админом</button>
                   ) : (
-                    <button onClick={() => changeRole(user.id, "user")} style={styles.userBtn}>Убрать админа</button>
+                    user.id !== currentUser.uid ? (
+                      <button onClick={() => changeRole(user.id, "user")} style={styles.userBtn}>Убрать админа</button>
+                    ) : (
+                      <span style={{ color: "#6b7280" }}>Вы</span>
+                    )
                   )}
                 </td>
               </tr>
