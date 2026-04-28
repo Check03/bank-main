@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
-import { collection, query, where, getDocs, addDoc, doc, getDoc, deleteDoc, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, doc, deleteDoc, orderBy } from "firebase/firestore";
 
 export default function Contacts() {
   const { currentUser } = useAuth();
