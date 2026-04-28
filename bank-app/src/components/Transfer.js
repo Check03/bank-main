@@ -100,9 +100,9 @@ export default function Transfer() {
   };
 
   return (
-    <div style={styles.container}>
-      <div className="card" style={styles.card}>
-        <h2 style={styles.title}>Перевести средства</h2>
+  <div className="container" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh", padding: "1rem" }}>
+    <div className="card" style={{ width: "100%", maxWidth: "500px" }}>
+      <h2 style={styles.title}>Перевести средства</h2>
         {error && <div style={styles.error}>{error}</div>}
         {success && <div style={styles.success}>{success}</div>}
 

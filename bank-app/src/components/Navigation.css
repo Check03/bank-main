@@ -1,9 +1,13 @@
 .nav {
-  background-color: #1e3a8a;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid #334155;
   padding: 0.75rem 1rem;
-  color: white;
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
+
 .nav-container {
   max-width: 1200px;
   margin: 0 auto;
@@ -12,12 +16,17 @@
   align-items: center;
   flex-wrap: wrap;
 }
+
 .logo {
-  color: white;
+  background: linear-gradient(135deg, #60a5fa, #a855f7);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
   font-size: 1.5rem;
-  font-weight: bold;
+  font-weight: 800;
   text-decoration: none;
 }
+
 .menu-icon {
   display: none;
   background: none;
@@ -25,28 +34,33 @@
   color: white;
   font-size: 1.8rem;
   cursor: pointer;
-  padding: 0;
 }
+
 .nav-links {
   display: flex;
   gap: 1.5rem;
   align-items: center;
 }
+
 .link {
-  color: white;
+  color: #cbd5e1;
   text-decoration: none;
-  font-size: 1rem;
-  padding: 0.5rem;
+  font-weight: 500;
+  transition: 0.2s;
 }
+
+.link:hover {
+  color: #60a5fa;
+}
+
 .logout-btn {
-  background-color: #dc2626;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
   color: white;
-  border: none;
   padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1rem;
+  border-radius: 40px;
+  font-weight: 600;
 }
+
 @media (max-width: 768px) {
   .menu-icon {
     display: block;
@@ -55,7 +69,6 @@
     display: none;
     flex-direction: column;
     width: 100%;
-    gap: 0.5rem;
     margin-top: 1rem;
   }
   .nav-links.open {

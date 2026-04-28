@@ -94,12 +94,12 @@ export default function Contacts() {
     }
   };
 
-  if (loading) return <div style={styles.loading}>Загрузка контактов...</div>;
+  if (loading) return <div className="loader"></div>;
 
   return (
-    <div style={styles.container}>
-      <div className="card" style={styles.card}>
-        <h2>Мои контакты</h2>
+  <div className="container">
+    <div className="card">
+      <h2>Мои контакты</h2>
         {message && <div style={styles.success}>{message}</div>}
         {error && <div style={styles.error}>{error}</div>}
         <form onSubmit={addContact} style={styles.form}>

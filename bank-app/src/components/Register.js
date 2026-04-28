@@ -30,8 +30,8 @@ export default function Register() {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
+  <div className="container" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh" }}>
+    <div className="card" style={{ maxWidth: "400px", width: "100%", padding: "2rem" }}>
         <h2 style={styles.title}>Регистрация</h2>
         {error && <div style={styles.error}>{error}</div>}
         <form onSubmit={handleSubmit} style={styles.form}>

@@ -77,53 +77,48 @@ export default function Dashboard() {
     };
   }, [currentUser]);
 
-  if (loading) return <div style={styles.loading}>Загрузка...</div>;
+  if (loading) return <div className="loader"></div>;
   if (error) return <div style={styles.error}>{error}</div>;
   if (!userData) return <div style={styles.error}>Пользователь не найден</div>;
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h2>Добро пожаловать, {userData.name}!</h2>
-        <div style={styles.balanceCard}>
-          <p style={styles.balanceLabel}>Ваш баланс</p>
-          <p style={styles.balanceAmount}>{userData.balance?.toLocaleString()} ₽</p>
-        </div>
-      </div>
-
-      <div style={styles.card}>
-        <h3 style={styles.sectionTitle}>История операций</h3>
-        {transactions.length === 0 ? (
-          <p>Нет транзакций</p>
-        ) : (
-          <div style={styles.transactionsList}>
-            {transactions.map((tx) => (
-              <div key={tx.id} style={styles.transactionItem}>
-                <div style={styles.transactionInfo}>
-                  <strong>
-                    {tx.from === currentUser.uid ? "→ Перевод отправлен" : "← Перевод получен"}
-                  </strong>
-                  <div style={styles.transactionDetails}>
-                    {tx.from === currentUser.uid ? `Получатель: ${tx.toEmail}` : `Отправитель: ${tx.fromEmail}`}
-                  </div>
-                  <div style={styles.transactionDesc}>{tx.description || "Без описания"}</div>
-                  <div style={styles.transactionDate}>
-                    {tx.timestamp?.toDate?.().toLocaleString()}
-                  </div>
-                </div>
-                <div style={{
-                  ...styles.transactionAmount,
-                  color: tx.from === currentUser.uid ? "#dc2626" : "#16a34a"
-                }}>
-                  {tx.from === currentUser.uid ? "-" : "+"}{tx.amount.toLocaleString()} ₽
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+  <div className="container">
+    <div className="card">
+      <h2>Добро пожаловать, {userData.name}!</h2>
+      <div style={styles.balanceCard}>
+        <p style={styles.balanceLabel}>Ваш баланс</p>
+        <p className="balance-amount" style={styles.balanceAmount}>{userData.balance?.toLocaleString()} ₽</p>
       </div>
     </div>
-  );
+
+    <div className="card">
+      <h3 style={styles.sectionTitle}>История операций</h3>
+      {transactions.length === 0 ? (
+        <p>Нет транзакций</p>
+      ) : (
+        <div style={styles.transactionsList}>
+          {transactions.map((tx) => (
+            <div key={tx.id} style={styles.transactionItem}>
+              <div style={styles.transactionInfo}>
+                <strong>{tx.from === currentUser.uid ? "→ Перевод отправлен" : "← Перевод получен"}</strong>
+                <div style={styles.transactionDetails}>
+                  {tx.from === currentUser.uid ? `Получатель: ${tx.toEmail}` : `Отправитель: ${tx.fromEmail}`}
+                </div>
+                <div style={styles.transactionDesc}>{tx.description || "Без описания"}</div>
+                <div style={styles.transactionDate}>
+                  {tx.timestamp?.toDate?.().toLocaleString()}
+                </div>
+              </div>
+              <div style={{ ...styles.transactionAmount, color: tx.from === currentUser.uid ? "#dc2626" : "#16a34a" }}>
+                {tx.from === currentUser.uid ? "-" : "+"}{tx.amount.toLocaleString()} ₽
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+);
 }
 
 const styles = {

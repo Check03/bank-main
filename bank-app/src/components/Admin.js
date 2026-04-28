@@ -125,18 +125,20 @@ export default function Admin() {
     }
   };
 
+  // ========== ИЗМЕНЕНИЯ ЗДЕСЬ ==========
   if (checkingRole) {
-    return <div className="admin-loading">Проверка прав доступа...</div>;
+    return <div className="loader"></div>;
   }
   if (!currentUser) {
-    return <div className="admin-error">Необходимо войти в систему</div>;
+    return <div style={{ textAlign: "center", marginTop: "3rem", color: "#ef4444" }}>Необходимо войти в систему</div>;
   }
   if (!isAdmin) {
-    return <div className="admin-error">Доступ запрещён. Только для администратора.</div>;
+    return <div style={{ textAlign: "center", marginTop: "3rem", color: "#ef4444" }}>Доступ запрещён. Только для администратора.</div>;
   }
   if (loading) {
-    return <div className="admin-loading">Загрузка пользователей...</div>;
+    return <div className="loader"></div>;
   }
+  // ===================================
 
   return (
     <div className="admin-container">
