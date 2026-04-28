@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
-import { doc, runTransaction, collection, getDocs, query, orderBy } from "firebase/firestore";
-import { collection, getDocs, query, orderBy, where, doc, runTransaction } from "firebase/firestore";
+import { doc, runTransaction, collection, getDocs, query, orderBy, where } from "firebase/firestore";
 
 export default function Transfer() {
   const { currentUser } = useAuth();
@@ -17,7 +16,6 @@ export default function Transfer() {
   const [contacts, setContacts] = useState([]);
   const [showContacts, setShowContacts] = useState(false);
 
-  // Загрузка контактов пользователя
   useEffect(() => {
     if (!currentUser) return;
     const fetchContacts = async () => {
@@ -108,7 +106,6 @@ export default function Transfer() {
         {error && <div style={styles.error}>{error}</div>}
         {success && <div style={styles.success}>{success}</div>}
 
-        {/* Кнопка показа контактов */}
         {contacts.length > 0 && (
           <div>
             <button onClick={() => setShowContacts(!showContacts)} style={styles.contactsToggle}>
@@ -172,6 +169,5 @@ const styles = {
   button: { backgroundColor: "#1e3a8a", color: "white", padding: "0.75rem", border: "none", borderRadius: "4px", fontSize: "1rem", cursor: "pointer", width: "100%" },
   contactsToggle: { backgroundColor: "#10b981", color: "white", padding: "0.5rem", border: "none", borderRadius: "4px", cursor: "pointer", width: "100%", marginBottom: "1rem" },
   contactsList: { listStyle: "none", padding: 0, marginBottom: "1rem", backgroundColor: "#f9fafb", borderRadius: "4px" },
-  contactItem: { padding: "0.5rem", borderBottom: "1px solid #ddd", cursor: "pointer", "&:hover": { backgroundColor: "#e5e7eb" } }
+  contactItem: { padding: "0.5rem", borderBottom: "1px solid #ddd", cursor: "pointer" }
 };
-// чтобы стиль hover работал, лучше добавить глобальный CSS, но для простоты оставляем как есть
