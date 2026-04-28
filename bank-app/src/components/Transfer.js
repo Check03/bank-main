@@ -113,7 +113,6 @@ export default function Transfer() {
 
       // 3. Данные счёта отправителя
       const senderAccountRef = doc(db, "users", currentUser.uid, "accounts", selectedFromAccount);
-      const senderAccountSnap = await getDocs(senderAccountRef); // нужно getDoc, но мы будем использовать runTransaction
       // Используем runTransaction
       await runTransaction(db, async (transaction) => {
         const senderDocSnap = await transaction.get(senderAccountRef);
