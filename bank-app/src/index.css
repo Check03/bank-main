@@ -1,7 +1,6 @@
-/* === Глобальные переменные тёмной темы === */
+/* === Переменные тёмной темы === */
 :root {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
+  --bg-body: #0b1120;
   --bg-card: #1e293b;
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
@@ -11,8 +10,11 @@
   --danger: #ef4444;
   --warning: #f59e0b;
   --border: #334155;
-  --shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-  --transition: all 0.3s ease;
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.4);
+  --radius-card: 24px;
+  --radius-btn: 12px;
+  --transition: all 0.2s ease;
 }
 
 * {
@@ -22,65 +24,69 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  background: linear-gradient(145deg, #0b1120 0%, #111827 100%);
   color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   line-height: 1.5;
   min-height: 100vh;
+  padding: 1rem;
 }
 
-/* Плавное появление страницы */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* === Анимация появления === */
+@keyframes fadeUp {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
-.container, .card, .admin-container, .admin-card {
-  animation: fadeInUp 0.4s ease-out;
+/* === Центрирование всех основных блоков === */
+.container, .admin-container {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 1rem;
+  animation: fadeUp 0.4s ease-out;
 }
 
-/* === Карточки и контейнеры === */
-.container, .card, .admin-card {
+/* === Карточки === */
+.card, .admin-card {
   background: var(--bg-card);
-  border-radius: 24px;
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(4px);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-md);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
   transition: var(--transition);
+  backdrop-filter: blur(2px);
+  border: 1px solid rgba(59, 130, 246, 0.1);
 }
 
 .card:hover, .admin-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.5);
 }
 
-/* === Кнопки === */
-button {
-  transition: var(--transition);
-  border: none;
-  cursor: pointer;
-  font-weight: 500;
-  border-radius: 12px;
+/* === Заголовки === */
+h1, h2, h3 {
+  color: var(--text-primary);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 1rem;
 }
 
-button:active {
-  transform: scale(0.98);
+h2 {
+  font-size: 1.8rem;
+  border-left: 4px solid var(--accent);
+  padding-left: 1rem;
 }
 
 /* === Поля ввода === */
 input, textarea, select {
   background: #0f172a;
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 0.75rem 1rem;
+  border-radius: 14px;
+  padding: 0.8rem 1rem;
   color: var(--text-primary);
   font-size: 1rem;
   transition: var(--transition);
+  width: 100%;
 }
 
 input:focus, textarea:focus, select:focus {
@@ -89,32 +95,87 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
-/* === Таблицы (админка) === */
+/* === Кнопки === */
+button {
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  border-radius: var(--radius-btn);
+  transition: var(--transition);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  padding: 0.6rem 1.2rem;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+/* Главная кнопка отправки (синяя) */
+.button-primary, button[type="submit"] {
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  color: white;
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+}
+
+.button-primary:hover, button[type="submit"]:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+}
+
+/* === Таблица админки (широкая, читаемая) === */
+.table-wrapper {
+  overflow-x: auto;
+  margin-top: 1rem;
+  border-radius: 20px;
+  background: #0f172a;
+  padding: 0.25rem;
+}
+
 .admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
   background: transparent;
-  border-radius: 16px;
-  overflow: hidden;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
 }
 
 .admin-table th {
-  background: #0f172a;
+  background: #111827;
   color: #94a3b8;
   font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .admin-table td {
   background: rgba(30, 41, 59, 0.6);
-  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
 }
 
-/* === Кнопки действий в админке === */
+/* Кнопки действий внутри таблицы */
+.actions-cell {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
 .btn-reset, .btn-make-admin, .btn-remove-admin, .btn-delete {
-  border-radius: 10px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.8rem;
+  border-radius: 40px;
   font-weight: 500;
   transition: var(--transition);
 }
 
-.btn-reset { background: var(--warning); color: #0f172a; }
+.btn-reset { background: var(--warning); color: #0b1120; }
 .btn-reset:hover { background: #d97706; transform: translateY(-2px); }
 
 .btn-make-admin { background: var(--success); color: white; }
@@ -125,36 +186,78 @@ input:focus, textarea:focus, select:focus {
 
 .btn-delete { background: #475569; color: white; }
 .btn-delete:hover:not(:disabled) { background: #334155; transform: translateY(-2px); }
+.btn-delete:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* === Адаптивные модификации === */
-@media (max-width: 768px) {
-  body {
-    font-size: 14px;
-  }
-  .container, .card, .admin-card {
-    padding: 1rem;
-    border-radius: 20px;
-  }
+/* === Сообщения об ошибках и успехе === */
+.error-message, .admin-error {
+  background: rgba(239, 68, 68, 0.15);
+  border-left: 4px solid var(--danger);
+  padding: 0.8rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  color: #fca5a5;
 }
 
-@media (max-width: 480px) {
-  .balance-amount {
-    font-size: 2rem !important;
-  }
+.success-message, .admin-success {
+  background: rgba(16, 185, 129, 0.15);
+  border-left: 4px solid var(--success);
+  padding: 0.8rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  color: #6ee7b7;
 }
 
-/* === Анимация загрузки === */
+/* === Спиннер загрузки === */
 .loader {
   border: 3px solid var(--border);
   border-top: 3px solid var(--accent);
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   animation: spin 0.8s linear infinite;
-  margin: 2rem auto;
+  margin: 3rem auto;
 }
 
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* === Баланс на главной === */
+.balance-amount {
+  font-size: 2.8rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #60a5fa, #a855f7);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  margin: 0.5rem 0;
+}
+
+/* === Адаптация для телефонов === */
+@media (max-width: 768px) {
+  body {
+    padding: 0.5rem;
+  }
+  .card, .admin-card {
+    padding: 1rem;
+    border-radius: 20px;
+  }
+  .admin-table th, .admin-table td {
+    padding: 0.75rem;
+  }
+  .actions-cell {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .actions-cell button {
+    width: 100%;
+    justify-content: center;
+  }
+  h2 {
+    font-size: 1.4rem;
+  }
+  .balance-amount {
+    font-size: 2rem;
+  }
 }

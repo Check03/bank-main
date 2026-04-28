@@ -14,7 +14,6 @@ export default function Admin() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingRole, setCheckingRole] = useState(true);
 
-  // Проверка роли текущего пользователя
   useEffect(() => {
     const checkAdminRole = async () => {
       if (!currentUser) {
@@ -40,7 +39,6 @@ export default function Admin() {
     checkAdminRole();
   }, [currentUser]);
 
-  // Загрузка всех пользователей
   useEffect(() => {
     if (!isAdmin) return;
     const fetchUsers = async () => {
@@ -59,7 +57,6 @@ export default function Admin() {
     fetchUsers();
   }, [isAdmin]);
 
-  // Функция обнуления баланса
   const resetBalance = async (userId, userName) => {
     if (!window.confirm(`Обнулить баланс пользователя ${userName}?`)) return;
     try {
@@ -73,7 +70,6 @@ export default function Admin() {
     }
   };
 
-  // Удаление пользователя (все данные из Firestore)
   const deleteUserAccount = async (userId, userName) => {
     if (userId === currentUser.uid) {
       alert("Нельзя удалить самого себя");
@@ -82,7 +78,6 @@ export default function Admin() {
     if (!window.confirm(`Удалить пользователя ${userName}? Это удалит все его данные (транзакции, контакты).`)) return;
 
     try {
-      // 1. Удаляем все транзакции, где пользователь участвует (from или to)
       const transactionsRef = collection(db, "transactions");
       const qFrom = query(transactionsRef, where("from", "==", userId));
       const qTo = query(transactionsRef, where("to", "==", userId));
@@ -92,17 +87,14 @@ export default function Admin() {
       snapTo.docs.forEach(docSnap => batch.delete(docSnap.ref));
       await batch.commit();
 
-      // 2. Удаляем все контакты пользователя (его подколлекцию contacts)
       const contactsRef = collection(db, "users", userId, "contacts");
       const contactsSnap = await getDocs(contactsRef);
       const batch2 = writeBatch(db);
       contactsSnap.docs.forEach(docSnap => batch2.delete(docSnap.ref));
       await batch2.commit();
 
-      // 3. Удаляем документ пользователя
       await deleteDoc(doc(db, "users", userId));
 
-      // 4. Обновляем список пользователей
       setUsers(prev => prev.filter(u => u.id !== userId));
       setMessage(`Пользователь ${userName} удалён из Firestore`);
       setTimeout(() => setMessage(""), 3000);
@@ -112,7 +104,6 @@ export default function Admin() {
     }
   };
 
-  // Смена роли
   const changeRole = async (userId, newRole) => {
     try {
       await updateDoc(doc(db, "users", userId), { role: newRole });
@@ -125,26 +116,16 @@ export default function Admin() {
     }
   };
 
-  // ========== ИЗМЕНЕНИЯ ЗДЕСЬ ==========
-  if (checkingRole) {
-    return <div className="loader"></div>;
-  }
-  if (!currentUser) {
-    return <div style={{ textAlign: "center", marginTop: "3rem", color: "#ef4444" }}>Необходимо войти в систему</div>;
-  }
-  if (!isAdmin) {
-    return <div style={{ textAlign: "center", marginTop: "3rem", color: "#ef4444" }}>Доступ запрещён. Только для администратора.</div>;
-  }
-  if (loading) {
-    return <div className="loader"></div>;
-  }
-  // ===================================
+  if (checkingRole) return <div className="loader"></div>;
+  if (!currentUser) return <div className="error-message" style={{ textAlign: "center" }}>Необходимо войти в систему</div>;
+  if (!isAdmin) return <div className="error-message" style={{ textAlign: "center" }}>Доступ запрещён. Только для администратора.</div>;
+  if (loading) return <div className="loader"></div>;
 
   return (
     <div className="admin-container">
       <div className="admin-card">
         <h2>Панель администратора</h2>
-        {message && <div className="admin-success">{message}</div>}
+        {message && <div className="success-message">{message}</div>}
         <div className="table-wrapper">
           <table className="admin-table">
             <thead>
@@ -164,35 +145,14 @@ export default function Admin() {
                   <td data-label="Баланс">{user.balance?.toLocaleString()}</td>
                   <td data-label="Роль">{user.role || "user"}</td>
                   <td data-label="Действия" className="actions-cell">
-                    <button
-                      onClick={() => resetBalance(user.id, user.name)}
-                      className="btn-reset"
-                    >
-                      Обнулить баланс
-                    </button>
+                    <button onClick={() => resetBalance(user.id, user.name)} className="btn-reset">Обнулить баланс</button>
                     {user.role !== "admin" && (
-                      <button
-                        onClick={() => changeRole(user.id, "admin")}
-                        className="btn-make-admin"
-                      >
-                        Сделать админом
-                      </button>
+                      <button onClick={() => changeRole(user.id, "admin")} className="btn-make-admin">Сделать админом</button>
                     )}
                     {user.role === "admin" && user.id !== currentUser.uid && (
-                      <button
-                        onClick={() => changeRole(user.id, "user")}
-                        className="btn-remove-admin"
-                      >
-                        Убрать админа
-                      </button>
+                      <button onClick={() => changeRole(user.id, "user")} className="btn-remove-admin">Убрать админа</button>
                     )}
-                    <button
-                      onClick={() => deleteUserAccount(user.id, user.name)}
-                      className="btn-delete"
-                      disabled={user.id === currentUser.uid}
-                    >
-                      Удалить аккаунт
-                    </button>
+                    <button onClick={() => deleteUserAccount(user.id, user.name)} className="btn-delete" disabled={user.id === currentUser.uid}>Удалить аккаунт</button>
                   </td>
                 </tr>
               ))}
