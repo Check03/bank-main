@@ -13,35 +13,46 @@ const currencySymbols = {
 };
 
 // Компонент для отображения курсов валют
+// Компонент для отображения курсов валют с автоматическим обновлением
 function ExchangeRates() {
-  const [rates, setRates] = useState(null);
+  const [rates, setRates] = useState({ usd: null, eur: null });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [lastUpdate, setLastUpdate] = useState(null);
+
+  const fetchRates = async () => {
+    try {
+      // Используем бесплатный API без CORS-проблем
+      const response = await fetch('https://api.exchangerate-api.com/v4/latest/RUB');
+      if (!response.ok) throw new Error('Ошибка загрузки');
+      const data = await response.json();
+      setRates({
+        usd: data.rates.USD,    // сколько долларов за 1 рубль? нам нужно наоборот: сколько рублей за 1 доллар
+        eur: data.rates.EUR
+      });
+      setLastUpdate(new Date());
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError('Не удалось загрузить курсы');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchRates = async () => {
-      try {
-        // Запрашиваем курсы USD и EUR к рублю (RUB)
-        const response = await fetch('https://api.exchangerate.host/latest?base=RUB&symbols=USD,EUR');
-        if (!response.ok) throw new Error('Ошибка загрузки курсов');
-        const data = await response.json();
-        setRates(data.rates);
-      } catch (err) {
-        console.error(err);
-        setError('Не удалось загрузить курсы валют');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchRates();
-    // Обновляем курсы каждые 10 минут (600000 миллисекунд)
-    const interval = setInterval(fetchRates, 600000);
+    const interval = setInterval(fetchRates, 600000); // каждые 10 минут
     return () => clearInterval(interval);
   }, []);
 
-  if (loading) return <div className="loader" style={{ width: "20px", height: "20px", margin: "0" }}></div>;
-  if (error) return <div className="error-message" style={{ fontSize: "0.8rem", margin: "0" }}>{error}</div>;
+  if (loading) return <div className="loader" style={{ width: "24px", height: "24px", margin: "0 auto" }}></div>;
+  if (error) return <div className="error-message" style={{ fontSize: "0.8rem", textAlign: "center" }}>{error}</div>;
+
+  // Преобразуем курс из "долларов за рубль" в "рублей за доллар"
+  const rubPerUsd = rates.usd ? (1 / rates.usd).toFixed(2) : '—';
+  const rubPerEur = rates.eur ? (1 / rates.eur).toFixed(2) : '—';
+  const eurPerUsd = rates.usd && rates.eur ? (rates.eur / rates.usd).toFixed(4) : '—';
 
   return (
     <div style={{
@@ -50,29 +61,22 @@ function ExchangeRates() {
       borderRadius: "12px",
       marginBottom: "1.5rem",
       display: "flex",
-      justifyContent: "space-around",
-      textAlign: "center",
+      justifyContent: "space-between",
+      alignItems: "center",
       gap: "1rem",
-      flexWrap: "wrap"
+      flexWrap: "wrap",
+      fontSize: "0.9rem"
     }}>
-      <div>
-        <span style={{ color: "#94a3b8" }}>USD/RUB:</span>
-        <strong style={{ marginLeft: "0.5rem", color: "#60a5fa" }}>
-          {rates ? (1 / rates.USD).toFixed(2) : "—"}
-        </strong>
+      <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
+        <div><span style={{ color: "#94a3b8" }}>USD/RUB:</span> <strong style={{ color: "#60a5fa" }}>{rubPerUsd}</strong></div>
+        <div><span style={{ color: "#94a3b8" }}>EUR/RUB:</span> <strong style={{ color: "#60a5fa" }}>{rubPerEur}</strong></div>
+        <div><span style={{ color: "#94a3b8" }}>EUR/USD:</span> <strong style={{ color: "#60a5fa" }}>{eurPerUsd}</strong></div>
       </div>
-      <div>
-        <span style={{ color: "#94a3b8" }}>EUR/RUB:</span>
-        <strong style={{ marginLeft: "0.5rem", color: "#60a5fa" }}>
-          {rates ? (1 / rates.EUR).toFixed(2) : "—"}
-        </strong>
-      </div>
-      <div>
-        <span style={{ color: "#94a3b8" }}>EUR/USD:</span>
-        <strong style={{ marginLeft: "0.5rem", color: "#60a5fa" }}>
-          {rates ? ((1 / rates.EUR) / (1 / rates.USD)).toFixed(4) : "—"}
-        </strong>
-      </div>
+      {lastUpdate && (
+        <div style={{ fontSize: "0.7rem", color: "#6b7280" }}>
+          Обновлено: {lastUpdate.toLocaleTimeString()}
+        </div>
+      )}
     </div>
   );
 }
