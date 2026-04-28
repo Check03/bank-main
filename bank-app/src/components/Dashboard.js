@@ -1,13 +1,81 @@
+// src/components/Dashboard.js
+
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 
+// Символы валют для красивого отображения
 const currencySymbols = {
   RUB: "₽",
   USD: "$",
   EUR: "€"
 };
+
+// Компонент для отображения курсов валют
+function ExchangeRates() {
+  const [rates, setRates] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchRates = async () => {
+      try {
+        // Запрашиваем курсы USD и EUR к рублю (RUB)
+        const response = await fetch('https://api.exchangerate.host/latest?base=RUB&symbols=USD,EUR');
+        if (!response.ok) throw new Error('Ошибка загрузки курсов');
+        const data = await response.json();
+        setRates(data.rates);
+      } catch (err) {
+        console.error(err);
+        setError('Не удалось загрузить курсы валют');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRates();
+    // Обновляем курсы каждые 10 минут (600000 миллисекунд)
+    const interval = setInterval(fetchRates, 600000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) return <div className="loader" style={{ width: "20px", height: "20px", margin: "0" }}></div>;
+  if (error) return <div className="error-message" style={{ fontSize: "0.8rem", margin: "0" }}>{error}</div>;
+
+  return (
+    <div style={{
+      background: "#0f172a",
+      padding: "0.75rem 1rem",
+      borderRadius: "12px",
+      marginBottom: "1.5rem",
+      display: "flex",
+      justifyContent: "space-around",
+      textAlign: "center",
+      gap: "1rem",
+      flexWrap: "wrap"
+    }}>
+      <div>
+        <span style={{ color: "#94a3b8" }}>USD/RUB:</span>
+        <strong style={{ marginLeft: "0.5rem", color: "#60a5fa" }}>
+          {rates ? (1 / rates.USD).toFixed(2) : "—"}
+        </strong>
+      </div>
+      <div>
+        <span style={{ color: "#94a3b8" }}>EUR/RUB:</span>
+        <strong style={{ marginLeft: "0.5rem", color: "#60a5fa" }}>
+          {rates ? (1 / rates.EUR).toFixed(2) : "—"}
+        </strong>
+      </div>
+      <div>
+        <span style={{ color: "#94a3b8" }}>EUR/USD:</span>
+        <strong style={{ marginLeft: "0.5rem", color: "#60a5fa" }}>
+          {rates ? ((1 / rates.EUR) / (1 / rates.USD)).toFixed(4) : "—"}
+        </strong>
+      </div>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { currentUser } = useAuth();
@@ -51,6 +119,9 @@ export default function Dashboard() {
     <div className="container">
       <div className="card">
         <h2>Ваши счета</h2>
+        {/* 👇 Виджет курсов валют */}
+        <ExchangeRates />
+
         {accounts.length === 0 && <p>Счетов пока нет. Создайте первый в разделе «Счета».</p>}
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           {accounts.map(acc => (
