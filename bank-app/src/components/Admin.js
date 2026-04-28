@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
-import { collection, getDocs, doc, updateDoc, getDoc } from "firebase/firestore";
+import {
+  collection, getDocs, doc, updateDoc, getDoc,
+  deleteDoc, query, where, writeBatch
+} from "firebase/firestore";
 
 export default function Admin() {
   const { currentUser } = useAuth();
@@ -37,7 +40,7 @@ export default function Admin() {
     checkAdminRole();
   }, [currentUser]);
 
-  // Загрузка списка пользователей (только если админ)
+  // Загрузка всех пользователей
   useEffect(() => {
     if (!isAdmin) return;
     const fetchUsers = async () => {
@@ -56,6 +59,60 @@ export default function Admin() {
     fetchUsers();
   }, [isAdmin]);
 
+  // Функция обнуления баланса
+  const resetBalance = async (userId, userName) => {
+    if (!window.confirm(`Обнулить баланс пользователя ${userName}?`)) return;
+    try {
+      await updateDoc(doc(db, "users", userId), { balance: 0 });
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, balance: 0 } : u));
+      setMessage(`Баланс ${userName} обнулён`);
+      setTimeout(() => setMessage(""), 3000);
+    } catch (err) {
+      console.error(err);
+      setMessage("Ошибка обнуления баланса");
+    }
+  };
+
+  // Удаление пользователя (все данные из Firestore)
+  const deleteUserAccount = async (userId, userName) => {
+    if (userId === currentUser.uid) {
+      alert("Нельзя удалить самого себя");
+      return;
+    }
+    if (!window.confirm(`Удалить пользователя ${userName}? Это удалит все его данные (транзакции, контакты).`)) return;
+
+    try {
+      // 1. Удаляем все транзакции, где пользователь участвует (from или to)
+      const transactionsRef = collection(db, "transactions");
+      const qFrom = query(transactionsRef, where("from", "==", userId));
+      const qTo = query(transactionsRef, where("to", "==", userId));
+      const [snapFrom, snapTo] = await Promise.all([getDocs(qFrom), getDocs(qTo)]);
+      const batch = writeBatch(db);
+      snapFrom.docs.forEach(docSnap => batch.delete(docSnap.ref));
+      snapTo.docs.forEach(docSnap => batch.delete(docSnap.ref));
+      await batch.commit();
+
+      // 2. Удаляем все контакты пользователя (его подколлекцию contacts)
+      const contactsRef = collection(db, "users", userId, "contacts");
+      const contactsSnap = await getDocs(contactsRef);
+      const batch2 = writeBatch(db);
+      contactsSnap.docs.forEach(docSnap => batch2.delete(docSnap.ref));
+      await batch2.commit();
+
+      // 3. Удаляем документ пользователя
+      await deleteDoc(doc(db, "users", userId));
+
+      // 4. Обновляем список пользователей
+      setUsers(prev => prev.filter(u => u.id !== userId));
+      setMessage(`Пользователь ${userName} удалён из Firestore`);
+      setTimeout(() => setMessage(""), 3000);
+    } catch (err) {
+      console.error(err);
+      setMessage("Ошибка удаления пользователя");
+    }
+  };
+
+  // Смена роли
   const changeRole = async (userId, newRole) => {
     try {
       await updateDoc(doc(db, "users", userId), { role: newRole });
@@ -69,64 +126,78 @@ export default function Admin() {
   };
 
   if (checkingRole) {
-    return <div style={styles.loading}>Проверка прав доступа...</div>;
+    return <div className="admin-loading">Проверка прав доступа...</div>;
   }
-
   if (!currentUser) {
-    return <div style={styles.error}>Необходимо войти в систему</div>;
+    return <div className="admin-error">Необходимо войти в систему</div>;
   }
-
   if (!isAdmin) {
-    return <div style={styles.error}>Доступ запрещён. Только для администратора.</div>;
+    return <div className="admin-error">Доступ запрещён. Только для администратора.</div>;
   }
-
-  if (loading) return <div style={styles.loading}>Загрузка списка пользователей...</div>;
+  if (loading) {
+    return <div className="admin-loading">Загрузка пользователей...</div>;
+  }
 
   return (
-    <div style={styles.container}>
-      <div className="card" style={styles.card}>
+    <div className="admin-container">
+      <div className="admin-card">
         <h2>Панель администратора</h2>
-        {message && <div style={styles.success}>{message}</div>}
-        <table style={styles.table}>
-          <thead>
-            <tr><th>Email</th><th>Имя</th><th>Баланс</th><th>Роль</th><th>Действие</th></tr>
-          </thead>
-          <tbody>
-            {users.map(user => (
-              <tr key={user.id}>
-                <td>{user.email}</td>
-                <td>{user.name}</td>
-                <td>{user.balance?.toLocaleString()} ₽</td>
-                <td>{user.role || "user"}</td>
-                <td>
-                  {user.role !== "admin" ? (
-                    <button onClick={() => changeRole(user.id, "admin")} style={styles.adminBtn}>Сделать админом</button>
-                  ) : (
-                    user.id !== currentUser.uid ? (
-                      <button onClick={() => changeRole(user.id, "user")} style={styles.userBtn}>Убрать админа</button>
-                    ) : (
-                      <span style={{ color: "#6b7280" }}>Вы</span>
-                    )
-                  )}
-                </td>
+        {message && <div className="admin-success">{message}</div>}
+        <div className="table-wrapper">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Имя</th>
+                <th>Баланс (₽)</th>
+                <th>Роль</th>
+                <th>Действия</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {users.map(user => (
+                <tr key={user.id}>
+                  <td data-label="Email">{user.email}</td>
+                  <td data-label="Имя">{user.name}</td>
+                  <td data-label="Баланс">{user.balance?.toLocaleString()}</td>
+                  <td data-label="Роль">{user.role || "user"}</td>
+                  <td data-label="Действия" className="actions-cell">
+                    <button
+                      onClick={() => resetBalance(user.id, user.name)}
+                      className="btn-reset"
+                    >
+                      Обнулить баланс
+                    </button>
+                    {user.role !== "admin" && (
+                      <button
+                        onClick={() => changeRole(user.id, "admin")}
+                        className="btn-make-admin"
+                      >
+                        Сделать админом
+                      </button>
+                    )}
+                    {user.role === "admin" && user.id !== currentUser.uid && (
+                      <button
+                        onClick={() => changeRole(user.id, "user")}
+                        className="btn-remove-admin"
+                      >
+                        Убрать админа
+                      </button>
+                    )}
+                    <button
+                      onClick={() => deleteUserAccount(user.id, user.name)}
+                      className="btn-delete"
+                      disabled={user.id === currentUser.uid}
+                    >
+                      Удалить аккаунт
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
 }
-
-const styles = {
-  container: { maxWidth: "1200px", margin: "2rem auto", padding: "0 1rem" },
-  card: { backgroundColor: "white", borderRadius: "8px", padding: "1.5rem", overflowX: "auto" },
-  table: { width: "100%", borderCollapse: "collapse" },
-  th: { textAlign: "left", padding: "0.75rem", borderBottom: "1px solid #e5e7eb" },
-  td: { padding: "0.75rem", borderBottom: "1px solid #e5e7eb" },
-  adminBtn: { backgroundColor: "#10b981", color: "white", border: "none", padding: "0.25rem 0.5rem", borderRadius: "4px", cursor: "pointer" },
-  userBtn: { backgroundColor: "#f59e0b", color: "white", border: "none", padding: "0.25rem 0.5rem", borderRadius: "4px", cursor: "pointer" },
-  error: { textAlign: "center", color: "#dc2626", marginTop: "3rem" },
-  loading: { textAlign: "center", marginTop: "3rem" },
-  success: { backgroundColor: "#dcfce7", color: "#16a34a", padding: "0.5rem", borderRadius: "4px", marginBottom: "1rem" }
-};

@@ -38,3 +38,138 @@ input:focus {
     margin-top: 0.5rem;
   }
 }
+
+/* === Админка: адаптивная таблица === */
+.admin-container {
+  max-width: 1400px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+.admin-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+}
+.admin-card h2 {
+  margin-bottom: 1.5rem;
+  color: #1e3a8a;
+}
+.table-wrapper {
+  overflow-x: auto;
+}
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.admin-table th,
+.admin-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+.admin-table th {
+  background-color: #f8fafc;
+  font-weight: 600;
+  color: #1e293b;
+}
+.actions-cell {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.btn-reset,
+.btn-make-admin,
+.btn-remove-admin,
+.btn-delete {
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: 0.2s;
+}
+.btn-reset {
+  background-color: #f59e0b;
+  color: white;
+}
+.btn-reset:hover {
+  background-color: #d97706;
+}
+.btn-make-admin {
+  background-color: #10b981;
+  color: white;
+}
+.btn-make-admin:hover {
+  background-color: #059669;
+}
+.btn-remove-admin {
+  background-color: #ef4444;
+  color: white;
+}
+.btn-remove-admin:hover {
+  background-color: #dc2626;
+}
+.btn-delete {
+  background-color: #6b7280;
+  color: white;
+}
+.btn-delete:hover:not(:disabled) {
+  background-color: #4b5563;
+}
+.btn-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.admin-error,
+.admin-loading {
+  text-align: center;
+  margin: 3rem;
+  font-size: 1.2rem;
+}
+.admin-error {
+  color: #dc2626;
+}
+.admin-success {
+  background-color: #dcfce7;
+  color: #16a34a;
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+/* Адаптация для телефонов */
+@media (max-width: 768px) {
+  .admin-table thead {
+    display: none;
+  }
+  .admin-table tbody tr {
+    display: block;
+    margin-bottom: 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.5rem;
+  }
+  .admin-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-bottom: none;
+  }
+  .admin-table td::before {
+    content: attr(data-label);
+    font-weight: bold;
+    width: 40%;
+    color: #334155;
+  }
+  .actions-cell {
+    flex-direction: column;
+  }
+  .actions-cell button {
+    width: 100%;
+  }
+}
