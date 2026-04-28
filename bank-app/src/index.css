@@ -20,3 +20,21 @@ input:focus {
   outline: none;
   border-color: #1e3a8a;
 }
+
+/* Адаптация для контактов и других страниц */
+@media (max-width: 640px) {
+  .card {
+    padding: 1rem;
+  }
+  table, thead, tbody, th, td, tr {
+    display: block;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.5rem !important;
+  }
+  .admin-buttons button {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+}
