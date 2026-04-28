@@ -30,10 +30,12 @@ export default function Navigation() {
         <button className="menu-icon" onClick={() => setIsOpen(!isOpen)}>☰</button>
         <div className={`nav-links ${isOpen ? "open" : ""}`}>
           <Link to="/dashboard" className="link" onClick={() => setIsOpen(false)}>Главная</Link>
+          <Link to="/accounts" className="link" onClick={() => setIsOpen(false)}>Счета</Link>
           <Link to="/transfer" className="link" onClick={() => setIsOpen(false)}>Перевод</Link>
           <Link to="/contacts" className="link" onClick={() => setIsOpen(false)}>Контакты</Link>
           <Link to="/account" className="link" onClick={() => setIsOpen(false)}>Аккаунт</Link>
           {isAdmin && <Link to="/admin" className="link" onClick={() => setIsOpen(false)}>Админка</Link>}
+          
         </div>
       </div>
     </nav>

@@ -1,140 +1,228 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { doc, collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
+import { doc, runTransaction, collection, getDocs, query, where } from "firebase/firestore";
 
-export default function Dashboard() {
+// Курсы обмена (RUB как базовая)
+const exchangeRates = {
+  RUB: 1,
+  USD: 90,
+  EUR: 100
+};
+
+// Конвертация суммы из одной валюты в другую
+const convertCurrency = (amount, fromCurrency, toCurrency) => {
+  if (fromCurrency === toCurrency) return amount;
+  const amountInRUB = amount / exchangeRates[fromCurrency];
+  return amountInRUB * exchangeRates[toCurrency];
+};
+
+export default function Transfer() {
   const { currentUser } = useAuth();
-  const [userData, setUserData] = useState(null);
-  const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+  const [accounts, setAccounts] = useState([]);
+  const [selectedFromAccount, setSelectedFromAccount] = useState("");
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [amount, setAmount] = useState("");
+  const [description, setDescription] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [contacts, setContacts] = useState([]);
+  const [showContacts, setShowContacts] = useState(false);
 
+  // Загрузка счетов отправителя
   useEffect(() => {
-    if (!currentUser) {
-      setLoading(false);
+    if (!currentUser) return;
+    const fetchAccounts = async () => {
+      const accountsRef = collection(db, "users", currentUser.uid, "accounts");
+      const snapshot = await getDocs(accountsRef);
+      const accs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setAccounts(accs);
+      if (accs.length > 0 && !selectedFromAccount) {
+        const defaultAcc = accs.find(acc => acc.isDefault);
+        setSelectedFromAccount(defaultAcc ? defaultAcc.id : accs[0].id);
+      }
+    };
+    fetchAccounts();
+  }, [currentUser, selectedFromAccount]);
+
+  // Загрузка контактов
+  useEffect(() => {
+    if (!currentUser) return;
+    const fetchContacts = async () => {
+      try {
+        const contactsRef = collection(db, "users", currentUser.uid, "contacts");
+        const snapshot = await getDocs(contactsRef);
+        const contactsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setContacts(contactsList);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchContacts();
+  }, [currentUser]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    const amountNum = parseFloat(amount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      setError("Введите корректную сумму");
+      return;
+    }
+    if (!selectedFromAccount) {
+      setError("Выберите счёт списания");
+      return;
+    }
+    if (recipientEmail === currentUser.email) {
+      setError("Нельзя перевести самому себе");
       return;
     }
 
-    const userDocRef = doc(db, "users", currentUser.uid);
-    const unsubscribeUser = onSnapshot(userDocRef,
-      (docSnap) => {
-        if (docSnap.exists()) {
-          setUserData(docSnap.data());
-        } else {
-          setError("Данные пользователя не найдены");
+    setLoading(true);
+
+    try {
+      // 1. Найти получателя по email
+      const usersRef = collection(db, "users");
+      const qUser = query(usersRef, where("email", "==", recipientEmail));
+      const userSnap = await getDocs(qUser);
+      if (userSnap.empty) {
+        setError("Пользователь не найден");
+        setLoading(false);
+        return;
+      }
+      const recipientUser = userSnap.docs[0];
+      const recipientId = recipientUser.id;
+
+      // 2. Найти основной счёт получателя (или любой, если основного нет)
+      const recipientAccountsRef = collection(db, "users", recipientId, "accounts");
+      const recAccSnap = await getDocs(recipientAccountsRef);
+      if (recAccSnap.empty) {
+        setError("У получателя нет счетов");
+        setLoading(false);
+        return;
+      }
+      let recipientAccount = recAccSnap.docs.find(doc => doc.data().isDefault);
+      if (!recipientAccount) recipientAccount = recAccSnap.docs[0];
+      const recipientAccountData = recipientAccount.data();
+      const recipientAccountId = recipientAccount.id;
+
+      // 3. Данные счёта отправителя
+      const senderAccountRef = doc(db, "users", currentUser.uid, "accounts", selectedFromAccount);
+      const senderAccountSnap = await getDocs(senderAccountRef); // нужно getDoc, но мы будем использовать runTransaction
+      // Используем runTransaction
+      await runTransaction(db, async (transaction) => {
+        const senderDocSnap = await transaction.get(senderAccountRef);
+        if (!senderDocSnap.exists()) throw new Error("Счёт списания не найден");
+        const senderBalance = senderDocSnap.data().balance;
+        const senderCurrency = senderDocSnap.data().currency;
+        if (senderBalance < amountNum) throw new Error("Недостаточно средств на счёте");
+
+        // Конвертация суммы в валюту счёта получателя
+        const recipientCurrency = recipientAccountData.currency;
+        let amountToRecipient = amountNum;
+        if (senderCurrency !== recipientCurrency) {
+          amountToRecipient = convertCurrency(amountNum, senderCurrency, recipientCurrency);
         }
-      },
-      (err) => {
-        console.error("Ошибка загрузки пользователя:", err);
-        setError("Ошибка загрузки профиля");
-        setLoading(false);
-      }
-    );
 
-    const transactionsRef = collection(db, "transactions");
-    const qFrom = query(transactionsRef, where("from", "==", currentUser.uid), orderBy("timestamp", "desc"));
-    const qTo = query(transactionsRef, where("to", "==", currentUser.uid), orderBy("timestamp", "desc"));
+        // Обновление балансов
+        transaction.update(senderAccountRef, { balance: senderBalance - amountNum });
+        const recipientAccountRef = doc(db, "users", recipientId, "accounts", recipientAccountId);
+        const recDocSnap = await transaction.get(recipientAccountRef);
+        const newRecBalance = (recDocSnap.data().balance || 0) + amountToRecipient;
+        transaction.update(recipientAccountRef, { balance: newRecBalance });
 
-    let fromTransactions = [];
-    let toTransactions = [];
+        // Запись транзакции (с информацией о валютах и счетах)
+        const transactionRef = collection(db, "transactions");
+        transaction.set(doc(transactionRef), {
+          from: currentUser.uid,
+          to: recipientId,
+          fromEmail: currentUser.email,
+          toEmail: recipientEmail,
+          fromAccountId: selectedFromAccount,
+          fromAccountCurrency: senderCurrency,
+          toAccountId: recipientAccountId,
+          toAccountCurrency: recipientCurrency,
+          amount: amountNum,
+          amountConverted: amountToRecipient,
+          description: description,
+          timestamp: new Date()
+        });
+      });
 
-    const combineAndSet = () => {
-      const all = [...fromTransactions, ...toTransactions];
-      all.sort((a, b) => (b.timestamp?.toDate?.() || 0) - (a.timestamp?.toDate?.() || 0));
-      setTransactions(all);
+      setSuccess(`Перевод ${amountNum} ₽ (или эквивалент) выполнен!`);
+      setRecipientEmail("");
+      setAmount("");
+      setDescription("");
+      setTimeout(() => navigate("/dashboard"), 2000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
       setLoading(false);
-    };
+    }
+  };
 
-    const unsubscribeFrom = onSnapshot(qFrom,
-      (snapshot) => {
-        fromTransactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        combineAndSet();
-      },
-      (err) => {
-        console.error("Ошибка загрузки исходящих транзакций:", err);
-        setError("Ошибка загрузки истории");
-        setLoading(false);
-      }
-    );
+  const selectContact = (email) => {
+    setRecipientEmail(email);
+    setShowContacts(false);
+  };
 
-    const unsubscribeTo = onSnapshot(qTo,
-      (snapshot) => {
-        toTransactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        combineAndSet();
-      },
-      (err) => {
-        console.error("Ошибка загрузки входящих транзакций:", err);
-        setError("Ошибка загрузки истории");
-        setLoading(false);
-      }
-    );
-
-    return () => {
-      unsubscribeUser();
-      unsubscribeFrom();
-      unsubscribeTo();
-    };
-  }, [currentUser]);
-
-  if (loading) return <div className="loader"></div>;
-  if (error) return <div style={styles.error}>{error}</div>;
-  if (!userData) return <div style={styles.error}>Пользователь не найден</div>;
+  const fromAccount = accounts.find(acc => acc.id === selectedFromAccount);
 
   return (
-  <div className="container">
-    <div className="card">
-      <h2>Добро пожаловать, {userData.displayName || userData.name || "Пользователь"}!</h2>
-      <div style={styles.balanceCard}>
-        <p style={styles.balanceLabel}>Ваш баланс</p>
-        <p className="balance-amount" style={styles.balanceAmount}>{userData.balance?.toLocaleString()} ₽</p>
+    <div className="container" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh" }}>
+      <div className="card" style={{ maxWidth: "600px", width: "100%" }}>
+        <h2>Перевести средства</h2>
+        {error && <div className="error-message">{error}</div>}
+        {success && <div className="success-message">{success}</div>}
+
+        {contacts.length > 0 && (
+          <div style={{ marginBottom: "1rem" }}>
+            <button onClick={() => setShowContacts(!showContacts)} style={{ background: "#10b981", width: "100%" }}>
+              {showContacts ? "Скрыть контакты" : "Быстрый перевод из контактов"}
+            </button>
+            {showContacts && (
+              <ul style={{ listStyle: "none", padding: 0, marginTop: "0.5rem", background: "#0f172a", borderRadius: "12px" }}>
+                {contacts.map(contact => (
+                  <li key={contact.id} onClick={() => selectContact(contact.contactEmail)} style={{ padding: "0.5rem", borderBottom: "1px solid #334155", cursor: "pointer" }}>
+                    {contact.contactName} ({contact.contactEmail})
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <div>
+            <label>Счёт списания</label>
+            <select value={selectedFromAccount} onChange={(e) => setSelectedFromAccount(e.target.value)} required>
+              {accounts.map(acc => (
+                <option key={acc.id} value={acc.id}>{acc.name} ({acc.currency}) — {acc.balance?.toLocaleString()} {acc.currency}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label>Email получателя</label>
+            <input type="email" value={recipientEmail} onChange={(e) => setRecipientEmail(e.target.value)} required />
+          </div>
+          <div>
+            <label>Сумма в валюте счёта списания ({fromAccount?.currency})</label>
+            <input type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+          </div>
+          <div>
+            <label>Описание (необязательно)</label>
+            <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} />
+          </div>
+          <button type="submit" disabled={loading} className="button-primary">
+            {loading ? "Обработка..." : "Отправить перевод"}
+          </button>
+        </form>
       </div>
     </div>
-
-    <div className="card">
-      <h3 style={styles.sectionTitle}>История операций</h3>
-      {transactions.length === 0 ? (
-        <p>Нет транзакций</p>
-      ) : (
-        <div style={styles.transactionsList}>
-          {transactions.map((tx) => (
-            <div key={tx.id} style={styles.transactionItem}>
-              <div style={styles.transactionInfo}>
-                <strong>{tx.from === currentUser.uid ? "→ Перевод отправлен" : "← Перевод получен"}</strong>
-                <div style={styles.transactionDetails}>
-                  {tx.from === currentUser.uid ? `Получатель: ${tx.toEmail}` : `Отправитель: ${tx.fromEmail}`}
-                </div>
-                <div style={styles.transactionDesc}>{tx.description || "Без описания"}</div>
-                <div style={styles.transactionDate}>
-                  {tx.timestamp?.toDate?.().toLocaleString()}
-                </div>
-              </div>
-              <div style={{ ...styles.transactionAmount, color: tx.from === currentUser.uid ? "#dc2626" : "#16a34a" }}>
-                {tx.from === currentUser.uid ? "-" : "+"}{tx.amount.toLocaleString()} ₽
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  </div>
-);
+  );
 }
-
-const styles = {
-  container: { maxWidth: "1000px", margin: "2rem auto", padding: "0 1rem" },
-  card: { backgroundColor: "white", borderRadius: "8px", boxShadow: "0 2px 4px rgba(0,0,0,0.1)", padding: "1.5rem", marginBottom: "2rem" },
-  balanceCard: { textAlign: "center", marginTop: "1rem" },
-  balanceLabel: { fontSize: "1rem", color: "#6b7280" },
-  balanceAmount: { fontSize: "2.5rem", fontWeight: "bold", color: "#1e3a8a" },
-  sectionTitle: { marginBottom: "1rem", color: "#1e3a8a" },
-  transactionsList: { display: "flex", flexDirection: "column", gap: "0.75rem" },
-  transactionItem: { display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e5e7eb", padding: "0.75rem 0" },
-  transactionInfo: { flex: 1 },
-  transactionDetails: { fontSize: "0.875rem", color: "#4b5563" },
-  transactionDesc: { fontSize: "0.8rem", color: "#6b7280", marginTop: "0.25rem" },
-  transactionDate: { fontSize: "0.7rem", color: "#9ca3af", marginTop: "0.25rem" },
-  transactionAmount: { fontSize: "1.1rem", fontWeight: "bold" },
-  loading: { textAlign: "center", marginTop: "3rem", fontSize: "1.2rem" },
-  error: { textAlign: "center", marginTop: "3rem", fontSize: "1.2rem", color: "#dc2626" }
-};

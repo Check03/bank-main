@@ -9,7 +9,7 @@ import Transfer from "./components/Transfer";
 import Contacts from "./components/Contacts";
 import Admin from "./components/Admin";
 import Account from "./components/Account";   // ← добавить импорт
-
+import Accounts from "./components/Accounts";
 function App() {
   return (
     <Router>
@@ -24,6 +24,7 @@ function App() {
           <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
           <Route path="/account" element={<PrivateRoute><Account /></PrivateRoute>} />   
           <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/accounts" element={<PrivateRoute><Accounts /></PrivateRoute>} />
         </Routes>
       </AuthProvider>
     </Router>

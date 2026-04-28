@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, collection, addDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 
 export default function Register() {
@@ -16,12 +16,23 @@ export default function Register() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+
+      // 1. Создаём документ пользователя (без balance)
       await setDoc(doc(db, "users", user.uid), {
         displayName: displayName,
         email: email,
-        balance: 10000,
         createdAt: new Date().toISOString()
       });
+
+      // 2. Создаём первый счёт в подколлекции accounts
+      const accountsRef = collection(db, "users", user.uid, "accounts");
+      await addDoc(accountsRef, {
+        name: "Основной",
+        currency: "RUB",
+        balance: 10000,
+        isDefault: true
+      });
+
       navigate("/dashboard");
     } catch (err) {
       setError("Ошибка регистрации. Возможно, email уже используется.");
