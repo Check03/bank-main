@@ -9,10 +9,7 @@ export default function Transfer() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   
-  // Выбор типа перевода
-  const [transferType, setTransferType] = useState("email"); // "email" или "internal"
-  
-  // Общие поля
+  const [transferType, setTransferType] = useState("email");
   const [accounts, setAccounts] = useState([]);
   const [selectedFromAccount, setSelectedFromAccount] = useState("");
   const [amount, setAmount] = useState("");
@@ -27,11 +24,11 @@ export default function Transfer() {
   const [showContacts, setShowContacts] = useState(false);
   const [convertedPreview, setConvertedPreview] = useState(null);
   
-  // Для внутреннего перевода (между своими счетами)
+  // Для внутреннего перевода
   const [toAccountId, setToAccountId] = useState("");
   const [internalConverted, setInternalConverted] = useState(null);
   
-  // Загрузка счетов пользователя
+  // Загрузка счетов
   useEffect(() => {
     if (!currentUser) return;
     const fetchAccounts = async () => {
@@ -42,7 +39,7 @@ export default function Transfer() {
     fetchAccounts();
   }, [currentUser]);
   
-  // Установка счёта по умолчанию после загрузки счетов
+  // Установка счёта по умолчанию
   useEffect(() => {
     if (accounts.length > 0 && !selectedFromAccount) {
       const defaultAcc = accounts.find(acc => acc.isDefault);
@@ -50,15 +47,14 @@ export default function Transfer() {
     }
   }, [accounts, selectedFromAccount]);
   
-  // Загрузка контактов (друзей) для перевода по email
+  // Загрузка контактов (друзей)
   useEffect(() => {
     if (!currentUser) return;
     const fetchContacts = async () => {
       try {
         const contactsRef = collection(db, "users", currentUser.uid, "friends");
         const snapshot = await getDocs(contactsRef);
-        const contactsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setContacts(contactsList);
+        setContacts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       } catch (err) {
         console.error(err);
       }
@@ -74,6 +70,8 @@ export default function Transfer() {
     }
     const fetchPreview = async () => {
       try {
+        const fromAcc = accounts.find(a => a.id === selectedFromAccount);
+        if (!fromAcc) return;
         const usersRef = collection(db, "users");
         const qUser = query(usersRef, where("email", "==", recipientEmail));
         const userSnap = await getDocs(qUser);
@@ -81,8 +79,8 @@ export default function Transfer() {
           const recId = userSnap.docs[0].id;
           const recAccSnap = await getDocs(collection(db, "users", recId, "accounts"));
           const recAccount = recAccSnap.docs.find(d => d.data().isDefault) || recAccSnap.docs[0];
-          if (recAccount && recAccount.data().currency !== fromAccount?.currency) {
-            const converted = await convertAmount(parseFloat(amount), fromAccount.currency, recAccount.data().currency);
+          if (recAccount && recAccount.data().currency !== fromAcc.currency) {
+            const converted = await convertAmount(parseFloat(amount), fromAcc.currency, recAccount.data().currency);
             setConvertedPreview(converted);
             return;
           }
@@ -93,7 +91,7 @@ export default function Transfer() {
       }
     };
     fetchPreview();
-  }, [transferType, selectedFromAccount, recipientEmail, amount]);
+  }, [transferType, selectedFromAccount, recipientEmail, amount, accounts]);
   
   // Предпросмотр для внутреннего перевода
   useEffect(() => {
@@ -103,12 +101,14 @@ export default function Transfer() {
     }
     const fromAcc = accounts.find(a => a.id === selectedFromAccount);
     const toAcc = accounts.find(a => a.id === toAccountId);
-    if (fromAcc && toAcc && fromAcc.currency !== toAcc.currency) {
-      convertAmount(parseFloat(amount), fromAcc.currency, toAcc.currency)
-        .then(res => setInternalConverted(res))
-        .catch(() => setInternalConverted(null));
-    } else if (fromAcc && toAcc) {
-      setInternalConverted(parseFloat(amount));
+    if (fromAcc && toAcc) {
+      if (fromAcc.currency !== toAcc.currency) {
+        convertAmount(parseFloat(amount), fromAcc.currency, toAcc.currency)
+          .then(res => setInternalConverted(res))
+          .catch(() => setInternalConverted(null));
+      } else {
+        setInternalConverted(parseFloat(amount));
+      }
     } else {
       setInternalConverted(null);
     }
@@ -124,7 +124,7 @@ export default function Transfer() {
       if (!senderDocSnap.exists()) throw new Error("Счёт списания не найден");
       const senderBalance = senderDocSnap.data().balance;
       const senderCurrency = senderDocSnap.data().currency;
-      if (senderBalance < amountNum) throw new Error("Недостаточно средств на счёте");
+      if (senderBalance < amountNum) throw new Error("Недостаточно средств");
       
       let amountToRecipient = amountNum;
       if (senderCurrency !== recipientAccountData.currency) {
@@ -196,7 +196,6 @@ export default function Transfer() {
           setLoading(false);
           return;
         }
-        // Поиск получателя
         const usersRef = collection(db, "users");
         const qUser = query(usersRef, where("email", "==", recipientEmail));
         const userSnap = await getDocs(qUser);
@@ -215,7 +214,6 @@ export default function Transfer() {
         successMessage = await handleEmailTransfer(amountNum, recipientId, recipientAccountData, recipientAccountId);
         setRecipientEmail("");
       } else {
-        // Внутренний перевод
         if (!toAccountId) {
           setError("Выберите счёт зачисления");
           setLoading(false);
@@ -236,7 +234,7 @@ export default function Transfer() {
       setAmount("");
       setDescription("");
       
-      // Обновить список счетов (балансы)
+      // Обновить балансы счетов
       const snapshot = await getDocs(collection(db, "users", currentUser.uid, "accounts"));
       setAccounts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       
@@ -260,7 +258,6 @@ export default function Transfer() {
         {error && <div className="error-message">{error}</div>}
         {success && <div className="success-message">{success}</div>}
         
-        {/* Выбор типа перевода */}
         <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem", justifyContent: "center" }}>
           <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <input type="radio" value="email" checked={transferType === "email"} onChange={() => setTransferType("email")} />
@@ -273,7 +270,6 @@ export default function Transfer() {
         </div>
         
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {/* Выбор счёта списания */}
           <div>
             <label>Счёт списания</label>
             <select value={selectedFromAccount} onChange={(e) => setSelectedFromAccount(e.target.value)} required>
@@ -285,7 +281,6 @@ export default function Transfer() {
           
           {transferType === "email" ? (
             <>
-              {/* Блок контактов */}
               {contacts.length > 0 && (
                 <div>
                   <button type="button" onClick={() => setShowContacts(!showContacts)} style={{ background: "#10b981", width: "100%" }}>
@@ -319,7 +314,6 @@ export default function Transfer() {
             </div>
           )}
           
-          {/* Сумма и описание */}
           <div>
             <label>Сумма в валюте счёта списания ({fromAccount?.currency})</label>
             <input type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
