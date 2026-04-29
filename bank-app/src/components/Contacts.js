@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
-import { collection, getDocs, addDoc, serverTimestamp, doc, getDoc, deleteDoc, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, getDoc, deleteDoc, onSnapshot } from "firebase/firestore";
 
 export default function Contacts() {
   const { currentUser } = useAuth();
