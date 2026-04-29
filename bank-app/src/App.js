@@ -8,8 +8,8 @@ import Dashboard from "./components/Dashboard";
 import Transfer from "./components/Transfer";
 import Contacts from "./components/Contacts";
 import Admin from "./components/Admin";  
-import Profile from "./components/Profile";
-import Profile from "./components/Accounts";
+import Profile from "./components/Profile";   // ✅ только один импорт Profile
+import Accounts from "./components/Accounts";
 
 function App() {
   return (
@@ -25,7 +25,7 @@ function App() {
           <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />  
           <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-          <Route path="/" accounts element={<PrivateRoute><Accounts /></PrivateRoute>} />
+          <Route path="/accounts" element={<PrivateRoute><Accounts /></PrivateRoute>} />
         </Routes>
       </AuthProvider>
     </Router>

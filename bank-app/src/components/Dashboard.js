@@ -98,13 +98,6 @@ export default function Dashboard() {
                     {acc.balance?.toLocaleString()} {currencySymbols[acc.currency] || acc.currency}
                   </div>
                 </div>
-                <div className="account-actions">
-                  {!acc.isDefault && (
-                    <button onClick={() => setDefaultAccount(acc.id)} className="btn-make-main">
-                      Сделать основным
-                    </button>
-                  )}
-                </div>
               </div>
             ))}
           </div>
