@@ -60,19 +60,6 @@ export default function Dashboard() {
     };
   }, [currentUser]);
 
-  // Переключение основного счёта
-  const setDefaultAccount = async (accountId) => {
-    try {
-      const updates = accounts.map(acc =>
-        updateDoc(doc(db, "users", currentUser.uid, "accounts", acc.id), { isDefault: acc.id === accountId })
-      );
-      await Promise.all(updates);
-      setAccounts(accounts.map(acc => ({ ...acc, isDefault: acc.id === accountId })));
-    } catch (err) {
-      console.error("Не удалось сменить основной счёт", err);
-    }
-  };
-
   if (loading) return <div className="loader"></div>;
 
   return (
