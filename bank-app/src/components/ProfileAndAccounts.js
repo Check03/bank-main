@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
-import { 
-  doc, updateDoc, collection, getDocs, addDoc, deleteDoc 
-} from "firebase/firestore";
+import { doc, updateDoc, collection, getDocs, addDoc, deleteDoc, getDoc } from "firebase/firestore";
 import { updateEmail, updatePassword } from "firebase/auth";
 
 export default function ProfileAndAccounts() {
