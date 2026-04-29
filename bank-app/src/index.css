@@ -521,3 +521,90 @@ button:active {
   background-color: #059669;
   transform: translateY(-2px);
 }
+
+/* Стили для поиска контактов */
+.search-results {
+  margin-top: 0.75rem;
+}
+
+.search-results-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  background: #0f172a;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #334155;
+}
+
+.search-result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #334155;
+  transition: background 0.2s;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-item:hover {
+  background: #1e293b;
+}
+
+.search-result-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.search-result-info strong {
+  color: #f1f5f9;
+  font-size: 1rem;
+}
+
+.search-result-email {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.btn-add-contact {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  padding: 0.4rem 0.9rem;
+  border-radius: 40px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.85rem;
+}
+
+.btn-add-contact:hover {
+  transform: translateY(-2px);
+  background: #2563eb;
+}
+
+.search-no-results {
+  background: #0f172a;
+  border-radius: 16px;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  color: #94a3b8;
+  border: 1px solid #334155;
+}
+
+/* Мобильная адаптация */
+@media (max-width: 640px) {
+  .search-result-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  .btn-add-contact {
+    width: 100%;
+    text-align: center;
+  }
+}

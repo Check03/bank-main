@@ -87,26 +87,34 @@ export default function Contacts() {
         <h2>Контакты</h2>
         {message && <div className="success-message">{message}</div>}
 
-        <div style={{ marginBottom: "2rem" }}>
+        <div className="search-section">
           <input
             type="text"
             placeholder="Поиск по имени или email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: "100%", padding: "0.75rem", borderRadius: "8px", border: "1px solid #ccc" }}
+            className="search-input"
           />
-          {searchTerm.length >= 2 && searchResults.length > 0 && (
-            <ul style={{ listStyle: "none", background: "#f8fafc", borderRadius: "8px", marginTop: "0.5rem", padding: "0.5rem" }}>
-              {searchResults.map(user => (
-                <li key={user.id} style={{ padding: "0.75rem", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span><strong>{user.name}</strong> ({user.email})</span>
-                  <button onClick={() => addContact(user)} style={{ background: "#3b82f6", color: "white", border: "none", padding: "0.25rem 0.75rem", borderRadius: "6px" }}>Добавить</button>
-                </li>
-              ))}
-            </ul>
-          )}
-          {searchTerm.length >= 2 && searchResults.length === 0 && (
-            <p style={{ marginTop: "0.5rem", fontSize: "0.85rem", color: "#6b7280" }}>Ничего не найдено</p>
+          {searchTerm.length >= 2 && (
+            <div className="search-results">
+              {searchResults.length > 0 ? (
+                <ul className="search-results-list">
+                  {searchResults.map(user => (
+                    <li key={user.id} className="search-result-item">
+                      <div className="search-result-info">
+                        <strong>{user.name}</strong>
+                        <span className="search-result-email">{user.email}</span>
+                      </div>
+                      <button onClick={() => addContact(user)} className="btn-add-contact">
+                        Добавить
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="search-no-results">Ничего не найдено</div>
+              )}
+            </div>
           )}
         </div>
 
@@ -114,16 +122,20 @@ export default function Contacts() {
         {contacts.length === 0 ? (
           <p>Контактов пока нет. Найдите пользователей через поиск.</p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          <div className="contacts-list">
             {contacts.map(contact => (
-              <div key={contact.id} style={{ background: "#1e293b", borderRadius: "12px", padding: "1rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+              <div key={contact.id} className="contact-card">
                 <div>
                   <strong>{contact.friendName}</strong>
-                  <div style={{ fontSize: "0.85rem", color: "#94a3b8" }}>{contact.friendEmail}</div>
+                  <div className="contact-email">{contact.friendEmail}</div>
                 </div>
-                <div style={{ display: "flex", gap: "0.5rem" }}>
-                  <button onClick={() => transferToContact(contact.friendEmail)} style={{ background: "#10b981", color: "white", border: "none", padding: "0.5rem 1rem", borderRadius: "6px" }}>Перевести</button>
-                  <button onClick={() => removeContact(contact.id)} style={{ background: "#6b7280", color: "white", border: "none", padding: "0.5rem 1rem", borderRadius: "6px" }}>Удалить</button>
+                <div className="contact-actions">
+                  <button onClick={() => transferToContact(contact.friendEmail)} className="btn-transfer">
+                    Перевести
+                  </button>
+                  <button onClick={() => removeContact(contact.id)} className="btn-remove">
+                    Удалить
+                  </button>
                 </div>
               </div>
             ))}
@@ -131,5 +143,5 @@ export default function Contacts() {
         )}
       </div>
     </div>
-  );
+);
 }
