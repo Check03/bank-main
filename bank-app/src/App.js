@@ -12,7 +12,6 @@ import Account from "./components/Account";
 import Accounts from "./components/Accounts";
 import SearchFriends from "./components/Friends/SearchFriends";
 import FriendsList from "./components/Friends/FriendsList";
-import InternalTransfer from "./components/InternalTransfer";
 import TransferToFriend from "./components/TransferToFriend";
 
 function App() {
