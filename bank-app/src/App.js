@@ -7,8 +7,7 @@ import Register from "./components/Register";
 import Dashboard from "./components/Dashboard";
 import Transfer from "./components/Transfer";
 import Contacts from "./components/Contacts";
-import Admin from "./components/Admin";
-import Account from "./components/Account";   
+import Admin from "./components/Admin";  
 import Profile from "./components/Profile";
 
 function App() {
@@ -22,8 +21,7 @@ function App() {
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/transfer" element={<PrivateRoute><Transfer /></PrivateRoute>} />
           <Route path="/contacts" element={<PrivateRoute><Contacts /></PrivateRoute>} />
-          <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
-          <Route path="/account" element={<PrivateRoute><Account /></PrivateRoute>} />   
+          <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />  
           <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
         </Routes>

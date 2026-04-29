@@ -506,3 +506,18 @@ button:active {
     font-size: 0.8rem !important;
   }
 }
+
+.btn-deposit {
+  background-color: #10b981;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.9rem;
+  border-radius: 40px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-deposit:hover {
+  background-color: #059669;
+  transform: translateY(-2px);
+}
