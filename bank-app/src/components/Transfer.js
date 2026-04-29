@@ -20,20 +20,25 @@ export default function Transfer() {
   const [showContacts, setShowContacts] = useState(false);
 
   // Загрузка счетов отправителя
-  useEffect(() => {
-    if (!currentUser) return;
-    const fetchAccounts = async () => {
-      const accountsRef = collection(db, "users", currentUser.uid, "accounts");
-      const snapshot = await getDocs(accountsRef);
-      const accs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setAccounts(accs);
-      if (accs.length > 0 && !selectedFromAccount) {
-        const defaultAcc = accs.find(acc => acc.isDefault);
-        setSelectedFromAccount(defaultAcc ? defaultAcc.id : accs[0].id);
-      }
-    };
-    fetchAccounts();
-  }, [currentUser]);
+  // Загрузка счетов отправителя
+useEffect(() => {
+  if (!currentUser) return;
+  const fetchAccounts = async () => {
+    const accountsRef = collection(db, "users", currentUser.uid, "accounts");
+    const snapshot = await getDocs(accountsRef);
+    const accs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setAccounts(accs);
+  };
+  fetchAccounts();
+}, [currentUser]);
+
+// Установка счёта по умолчанию после загрузки счетов
+useEffect(() => {
+  if (accounts.length > 0 && !selectedFromAccount) {
+    const defaultAcc = accounts.find(acc => acc.isDefault);
+    setSelectedFromAccount(defaultAcc ? defaultAcc.id : accounts[0].id);
+  }
+}, [accounts, selectedFromAccount]);
 
   // Загрузка контактов (друзей)
   useEffect(() => {
