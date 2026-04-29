@@ -17,7 +17,7 @@ export default function Register() {
     setError("");
     setLoading(true);
 
-    // 1. Проверка уникальности имени
+    // Проверка уникальности имени
     try {
       const usersRef = collection(db, "users");
       const q = query(usersRef, where("name", "==", name));
@@ -28,17 +28,16 @@ export default function Register() {
         return;
       }
     } catch (err) {
-      setError("Ошибка проверки уникальности имени");
+      setError("Ошибка проверки имени");
       setLoading(false);
       return;
     }
 
-    // 2. Создание пользователя в Authentication
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 3. Создание документа пользователя в Firestore
+      // ✅ Сохраняем имя, email и роль
       await setDoc(doc(db, "users", user.uid), {
         name: name,
         email: email,
@@ -46,7 +45,7 @@ export default function Register() {
         createdAt: new Date().toISOString()
       });
 
-      // 4. Создание первого счёта (основной, рублёвый)
+      // ✅ Создаём первый счёт (основной)
       const accountsRef = collection(db, "users", user.uid, "accounts");
       await setDoc(doc(accountsRef, "main"), {
         name: "Основной",
@@ -56,7 +55,6 @@ export default function Register() {
         createdAt: new Date().toISOString()
       });
 
-      // 5. Перенаправление на дашборд
       navigate("/dashboard");
     } catch (err) {
       setError("Ошибка регистрации. Возможно, email уже используется.");
@@ -67,105 +65,20 @@ export default function Register() {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h2 style={styles.title}>Регистрация</h2>
-        {error && <div style={styles.error}>{error}</div>}
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <input
-            type="text"
-            placeholder="Ваше имя (будет отображаться другим пользователям)"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            style={styles.input}
-            required
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={styles.input}
-            required
-          />
-          <input
-            type="password"
-            placeholder="Пароль (не менее 6 символов)"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={styles.input}
-            required
-            minLength="6"
-          />
-          <button type="submit" style={styles.button} disabled={loading}>
-            {loading ? "Регистрация..." : "Зарегистрироваться"}
-          </button>
+    <div className="container" style={{ maxWidth: "400px", margin: "3rem auto" }}>
+      <div className="card">
+        <h2>Регистрация</h2>
+        {error && <div className="error-message">{error}</div>}
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <input type="text" placeholder="Ваше имя" value={name} onChange={e => setName(e.target.value)} required />
+          <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+          <input type="password" placeholder="Пароль (минимум 6 символов)" value={password} onChange={e => setPassword(e.target.value)} required minLength="6" />
+          <button type="submit" disabled={loading} className="button-primary">{loading ? "Регистрация..." : "Зарегистрироваться"}</button>
         </form>
-        <p style={styles.linkText}>
-          Уже есть аккаунт? <Link to="/login" style={styles.link}>Войти</Link>
+        <p style={{ marginTop: "1rem", textAlign: "center" }}>
+          Уже есть аккаунт? <Link to="/login">Войти</Link>
         </p>
       </div>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: "80vh",
-    padding: "1rem"
-  },
-  card: {
-    backgroundColor: "white",
-    padding: "2rem",
-    borderRadius: "8px",
-    boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-    width: "100%",
-    maxWidth: "400px"
-  },
-  title: {
-    textAlign: "center",
-    marginBottom: "1.5rem",
-    color: "#1e3a8a"
-  },
-  error: {
-    backgroundColor: "#fee2e2",
-    color: "#dc2626",
-    padding: "0.5rem",
-    borderRadius: "4px",
-    marginBottom: "1rem",
-    textAlign: "center"
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "1rem"
-  },
-  input: {
-    padding: "0.75rem",
-    border: "1px solid #ccc",
-    borderRadius: "4px",
-    fontSize: "1rem",
-    width: "100%"
-  },
-  button: {
-    backgroundColor: "#1e3a8a",
-    color: "white",
-    padding: "0.75rem",
-    border: "none",
-    borderRadius: "4px",
-    fontSize: "1rem",
-    cursor: "pointer",
-    width: "100%"
-  },
-  linkText: {
-    textAlign: "center",
-    marginTop: "1rem"
-  },
-  link: {
-    color: "#1e3a8a",
-    textDecoration: "none"
-  }
-};

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
-import { collection, addDoc, serverTimestamp, doc, getDoc, deleteDoc, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, deleteDoc, onSnapshot } from "firebase/firestore";
 
 export default function Contacts() {
   const { currentUser } = useAuth();
@@ -45,24 +45,26 @@ export default function Contacts() {
   );
 
   const addContact = async (user) => {
-    try {
-      const friendRef = doc(db, "users", user.id);
-      const friendSnap = await getDoc(friendRef);
-      if (!friendSnap.exists()) throw new Error("Пользователь не найден");
-      const friendData = friendSnap.data();
-      await addDoc(collection(db, "users", currentUser.uid, "friends"), {
-        friendId: user.id,
-        friendName: friendData.name,
-        friendEmail: friendData.email,
-        addedAt: serverTimestamp()
-      });
-      setMessage(`Контакт ${friendData.name} добавлен`);
-      setTimeout(() => setMessage(""), 3000);
-      setSearchTerm("");
-    } catch (err) {
-      setMessage("Ошибка добавления контакта");
-    }
-  };
+  // Проверка, что у пользователя есть имя и email
+  if (!user.name || !user.email) {
+    setMessage("Некорректные данные пользователя");
+    return;
+  }
+  try {
+    await addDoc(collection(db, "users", currentUser.uid, "friends"), {
+      friendId: user.id,
+      friendName: user.name,
+      friendEmail: user.email,
+      addedAt: serverTimestamp()
+    });
+    setMessage(`Контакт ${user.name} добавлен`);
+    setTimeout(() => setMessage(""), 3000);
+    setSearchTerm("");
+  } catch (err) {
+    console.error("Ошибка добавления контакта:", err);
+    setMessage("Ошибка добавления контакта");
+  }
+};
 
   const removeContact = async (contactId) => {
     if (!window.confirm("Удалить контакт?")) return;
