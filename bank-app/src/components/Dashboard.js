@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
-import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, query, where, orderBy, onSnapshot, doc, updateDoc } from "firebase/firestore";
 
-const currencySymbols = { RUB: "₽", USD: "$", EUR: "€" };
+const currencySymbols = {
+  RUB: "₽",
+  USD: "$",
+  EUR: "€"
+};
 
 export default function Dashboard() {
   const { currentUser } = useAuth();
@@ -11,20 +15,21 @@ export default function Dashboard() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Загрузка счетов
+  // Загрузка всех счетов (onSnapshot)
   useEffect(() => {
     if (!currentUser) return;
     const unsubscribe = onSnapshot(
       collection(db, "users", currentUser.uid, "accounts"),
       (snapshot) => {
-        setAccounts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const accs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setAccounts(accs);
         setLoading(false);
       }
     );
     return () => unsubscribe();
   }, [currentUser]);
 
-  // Загрузка транзакций (отправленные и полученные)
+  // Загрузка транзакций
   useEffect(() => {
     if (!currentUser) return;
     const transactionsRef = collection(db, "transactions");
@@ -55,27 +60,58 @@ export default function Dashboard() {
     };
   }, [currentUser]);
 
-  // Основной счёт (для отображения баланса)
-  const mainAccount = accounts.find(acc => acc.isDefault) || accounts[0];
+  // Переключение основного счёта
+  const setDefaultAccount = async (accountId) => {
+    try {
+      const updates = accounts.map(acc =>
+        updateDoc(doc(db, "users", currentUser.uid, "accounts", acc.id), { isDefault: acc.id === accountId })
+      );
+      await Promise.all(updates);
+      setAccounts(accounts.map(acc => ({ ...acc, isDefault: acc.id === accountId })));
+    } catch (err) {
+      console.error("Не удалось сменить основной счёт", err);
+    }
+  };
 
   if (loading) return <div className="loader"></div>;
 
   return (
     <div className="container">
+      {/* Блок всех счетов */}
       <div className="card">
-        <h2>Ваши счета</h2>
-        {accounts.length === 0 && <p>Счетов пока нет. Создайте первый в разделе «Профиль».</p>}
-        {mainAccount && (
-          <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
-            <p style={{ fontSize: "1rem", color: "#6b7280" }}>Основной счёт: {mainAccount.name}</p>
-            <p style={{ fontSize: "2rem", fontWeight: "bold", color: "#1e3a8a" }}>
-              {mainAccount.balance?.toLocaleString()} {currencySymbols[mainAccount.currency] || mainAccount.currency}
-            </p>
+        <h2>Мои счета</h2>
+        {accounts.length === 0 ? (
+          <p>У вас пока нет счетов. Создайте первый в разделе «Профиль».</p>
+        ) : (
+          <div className="accounts-list">
+            {accounts.map(acc => (
+              <div key={acc.id} className="account-card">
+                <div className="account-header">
+                  <div>
+                    <h3>{acc.name}</h3>
+                    <p className="account-details">
+                      {acc.currency}
+                      {acc.isDefault && <span className="main-badge">Основной</span>}
+                    </p>
+                  </div>
+                  <div className="account-balance">
+                    {acc.balance?.toLocaleString()} {currencySymbols[acc.currency] || acc.currency}
+                  </div>
+                </div>
+                <div className="account-actions">
+                  {!acc.isDefault && (
+                    <button onClick={() => setDefaultAccount(acc.id)} className="btn-make-main">
+                      Сделать основным
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      {/* История операций */}
+      {/* История транзакций */}
       <div className="card">
         <h3>История переводов</h3>
         {transactions.length === 0 ? (
@@ -83,21 +119,21 @@ export default function Dashboard() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
             {transactions.map((tx) => (
-              <div key={tx.id} style={{ borderBottom: "1px solid #e5e7eb", padding: "0.75rem 0", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
+              <div key={tx.id} className="transaction-item" style={{ borderBottom: "1px solid #e5e7eb", padding: "0.75rem 0", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
                 <div>
                   <strong>{tx.from === currentUser.uid ? "→ Перевод отправлен" : "← Перевод получен"}</strong>
-                  <div style={{ fontSize: "0.85rem", color: "#4b5563" }}>
+                  <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
                     {tx.from === currentUser.uid ? `Получатель: ${tx.toEmail}` : `Отправитель: ${tx.fromEmail}`}
                   </div>
-                  <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>{tx.description || "Без описания"}</div>
-                  <div style={{ fontSize: "0.7rem", color: "#9ca3af" }}>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>{tx.description || "Без описания"}</div>
+                  <div style={{ fontSize: "0.7rem", color: "var(--text-secondary)" }}>
                     {tx.timestamp?.toDate?.().toLocaleString()}
                   </div>
                 </div>
-                <div style={{ fontWeight: "bold", color: tx.from === currentUser.uid ? "#dc2626" : "#16a34a" }}>
+                <div style={{ fontWeight: "bold", color: tx.from === currentUser.uid ? "var(--danger)" : "var(--success)" }}>
                   {tx.from === currentUser.uid ? "-" : "+"}{tx.amount.toLocaleString()} {tx.fromAccountCurrency}
                   {tx.fromAccountCurrency !== tx.toAccountCurrency && (
-                    <div style={{ fontSize: "0.7rem", color: "#6b7280" }}>
+                    <div style={{ fontSize: "0.7rem", color: "var(--text-secondary)" }}>
                       → {tx.amountConverted?.toLocaleString()} {tx.toAccountCurrency}
                     </div>
                   )}
