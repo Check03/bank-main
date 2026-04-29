@@ -12,7 +12,6 @@ export default function Accounts() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  // Загрузка счетов
   useEffect(() => {
     if (!currentUser) return;
     const fetchAccounts = async () => {
@@ -22,7 +21,6 @@ export default function Accounts() {
         const accountsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setAccounts(accountsList);
       } catch (err) {
-        console.error(err);
         setError("Ошибка загрузки счетов");
       } finally {
         setLoading(false);
@@ -31,22 +29,21 @@ export default function Accounts() {
     fetchAccounts();
   }, [currentUser]);
 
-  // Создание нового счёта
   const createAccount = async (e) => {
     e.preventDefault();
     if (!newAccountName.trim()) return;
     try {
       const accountsRef = collection(db, "users", currentUser.uid, "accounts");
+      const isFirst = accounts.length === 0;
       await addDoc(accountsRef, {
         name: newAccountName.trim(),
         currency: newCurrency,
         balance: 0,
-        isDefault: accounts.length === 0 // первый счёт делаем основным
+        isDefault: isFirst   // первый счёт – основной
       });
       setNewAccountName("");
       setMessage("Счёт создан");
       setTimeout(() => setMessage(""), 3000);
-      // Обновляем список
       const snapshot = await getDocs(accountsRef);
       setAccounts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     } catch (err) {
@@ -54,7 +51,25 @@ export default function Accounts() {
     }
   };
 
-  // Удаление счёта
+  // Переключение основного счёта
+  const setAsDefault = async (accountId) => {
+    try {
+      // Снимаем флаг isDefault со всех счетов
+      const updates = accounts.map(acc =>
+        updateDoc(doc(db, "users", currentUser.uid, "accounts", acc.id), { isDefault: false })
+      );
+      await Promise.all(updates);
+      // Устанавливаем флаг на выбранном
+      await updateDoc(doc(db, "users", currentUser.uid, "accounts", accountId), { isDefault: true });
+      // Обновляем локальное состояние
+      setAccounts(accounts.map(acc => ({ ...acc, isDefault: acc.id === accountId })));
+      setMessage("Основной счёт изменён");
+      setTimeout(() => setMessage(""), 3000);
+    } catch (err) {
+      setError("Ошибка смены основного счёта");
+    }
+  };
+
   const deleteAccount = async (accountId, balance) => {
     if (balance !== 0) {
       setError("Можно удалить только счёт с нулевым балансом");
@@ -71,7 +86,6 @@ export default function Accounts() {
     }
   };
 
-  // Переименование счёта
   const renameAccount = async (accountId, newName) => {
     if (!newName.trim()) return;
     try {
@@ -87,23 +101,21 @@ export default function Accounts() {
   if (loading) return <div className="loader"></div>;
 
   return (
-    <div className="container">
+    <div className="container accounts-page">
       <div className="card">
         <h2>Мои счета</h2>
         {message && <div className="success-message">{message}</div>}
         {error && <div className="error-message">{error}</div>}
 
-        {/* Форма создания счёта */}
-        <form onSubmit={createAccount} style={{ display: "flex", gap: "1rem", marginBottom: "2rem", flexWrap: "wrap" }}>
+        <form onSubmit={createAccount} className="create-account-form">
           <input
             type="text"
             placeholder="Название счёта"
             value={newAccountName}
             onChange={(e) => setNewAccountName(e.target.value)}
             required
-            style={{ flex: 2 }}
           />
-          <select value={newCurrency} onChange={(e) => setNewCurrency(e.target.value)} style={{ flex: 1 }}>
+          <select value={newCurrency} onChange={(e) => setNewCurrency(e.target.value)}>
             <option value="RUB">Рубли (RUB)</option>
             <option value="USD">Доллары (USD)</option>
             <option value="EUR">Евро (EUR)</option>
@@ -111,37 +123,41 @@ export default function Accounts() {
           <button type="submit">Создать счёт</button>
         </form>
 
-        {/* Список счетов */}
         {accounts.length === 0 ? (
           <p>У вас пока нет счетов. Создайте первый!</p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <div className="accounts-list">
             {accounts.map(account => (
-              <div key={account.id} style={{ background: "#0f172a", borderRadius: "16px", padding: "1rem" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+              <div key={account.id} className="account-card">
+                <div className="account-header">
                   <div>
-                    <h3 style={{ margin: 0 }}>{account.name}</h3>
-                    <p style={{ fontSize: "0.9rem", color: "#94a3b8" }}>
-                      {account.currency} • {account.isDefault && "(Основной)"}
+                    <h3>{account.name}</h3>
+                    <p className="account-details">
+                      {account.currency} • {account.isDefault && <span className="main-badge">Основной</span>}
                     </p>
                   </div>
-                  <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#60a5fa" }}>
+                  <div className="account-balance">
                     {account.balance?.toLocaleString()} {account.currency}
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+                <div className="account-actions">
                   <button
                     onClick={() => {
                       const newName = prompt("Новое название счёта", account.name);
                       if (newName) renameAccount(account.id, newName);
                     }}
-                    style={{ background: "#3b82f6" }}
+                    className="btn-rename"
                   >
                     Переименовать
                   </button>
+                  {!account.isDefault && (
+                    <button onClick={() => setAsDefault(account.id)} className="btn-make-main">
+                      Сделать основным
+                    </button>
+                  )}
                   <button
                     onClick={() => deleteAccount(account.id, account.balance)}
-                    style={{ background: "#6b7280" }}
+                    className="btn-delete"
                     disabled={account.balance !== 0}
                   >
                     Удалить {account.balance !== 0 && "(сначала обнулите)"}
