@@ -2,55 +2,38 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
-import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, getDoc, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, addDoc, serverTimestamp, doc, getDoc, deleteDoc } from "firebase/firestore";
 
 export default function Contacts() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [contacts, setContacts] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Загрузка списка контактов
+  // Загрузка списка контактов и всех пользователей
   useEffect(() => {
     if (!currentUser) return;
-    const fetchContacts = async () => {
-      const snapshot = await getDocs(collection(db, "users", currentUser.uid, "friends"));
-      setContacts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    const fetchData = async () => {
+      // Загружаем контакты текущего пользователя
+      const contactsSnapshot = await getDocs(collection(db, "users", currentUser.uid, "friends"));
+      setContacts(contactsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      // Загружаем всех пользователей (для поиска)
+      const usersSnapshot = await getDocs(collection(db, "users"));
+      setAllUsers(usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     };
-    fetchContacts();
+    fetchData();
   }, [currentUser]);
 
-  // Поиск пользователей (по имени или email)
-  useEffect(() => {
-    if (!searchTerm.trim() || searchTerm.length < 2) {
-      setSearchResults([]);
-      return;
-    }
-    const delay = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const usersRef = collection(db, "users");
-        const nameQuery = query(usersRef, where("name", ">=", searchTerm), where("name", "<=", searchTerm + "\uf8ff"));
-        const emailQuery = query(usersRef, where("email", ">=", searchTerm), where("email", "<=", searchTerm + "\uf8ff"));
-        const [nameSnap, emailSnap] = await Promise.all([getDocs(nameQuery), getDocs(emailQuery)]);
-        const resultsMap = new Map();
-        [...nameSnap.docs, ...emailSnap.docs].forEach(docSnap => {
-          if (docSnap.id !== currentUser.uid && !resultsMap.has(docSnap.id)) {
-            resultsMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
-          }
-        });
-        setSearchResults(Array.from(resultsMap.values()));
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    }, 300);
-    return () => clearTimeout(delay);
-  }, [searchTerm, currentUser]);
+  // Поиск среди всех пользователей (фильтрация на клиенте, без индексов)
+  const searchResults = allUsers.filter(user =>
+    user.id !== currentUser?.uid &&
+    !contacts.some(c => c.friendId === user.id) &&
+    (user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     user.email?.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   // Добавление в контакты
   const addContact = async (user) => {
@@ -68,7 +51,6 @@ export default function Contacts() {
       setMessage(`Контакт ${friendData.name} добавлен`);
       setTimeout(() => setMessage(""), 3000);
       setSearchTerm("");
-      setSearchResults([]);
       // Обновить список контактов
       const snapshot = await getDocs(collection(db, "users", currentUser.uid, "friends"));
       setContacts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -90,7 +72,7 @@ export default function Contacts() {
     }
   };
 
-  // Переход к переводу с заполненным email
+  // Переход к переводу
   const transferToContact = (email) => {
     navigate("/transfer", { state: { email } });
   };
@@ -101,7 +83,7 @@ export default function Contacts() {
         <h2>Контакты</h2>
         {message && <div className="success-message">{message}</div>}
 
-        {/* Поиск */}
+        {/* Поиск (работает без индексов) */}
         <div style={{ marginBottom: "2rem" }}>
           <input
             type="text"
@@ -110,8 +92,7 @@ export default function Contacts() {
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ width: "100%", padding: "0.75rem", borderRadius: "8px", border: "1px solid #ccc" }}
           />
-          {loading && <div className="loader" style={{ margin: "1rem auto" }}></div>}
-          {searchResults.length > 0 && (
+          {searchTerm.length >= 2 && searchResults.length > 0 && (
             <ul style={{ listStyle: "none", background: "#f8fafc", borderRadius: "8px", marginTop: "0.5rem", padding: "0.5rem" }}>
               {searchResults.map(user => (
                 <li key={user.id} style={{ padding: "0.75rem", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -120,6 +101,9 @@ export default function Contacts() {
                 </li>
               ))}
             </ul>
+          )}
+          {searchTerm.length >= 2 && searchResults.length === 0 && !loading && (
+            <p style={{ marginTop: "0.5rem", fontSize: "0.85rem", color: "#6b7280" }}>Ничего не найдено</p>
           )}
         </div>
 
