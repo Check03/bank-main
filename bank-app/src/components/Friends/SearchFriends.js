@@ -22,7 +22,6 @@ export default function SearchFriends({ onFriendAdded }) {
         const nameQuery = query(usersRef, where("name", ">=", searchTerm), where("name", "<=", searchTerm + "\uf8ff"));
         const emailQuery = query(usersRef, where("email", ">=", searchTerm), where("email", "<=", searchTerm + "\uf8ff"));
         const [nameSnap, emailSnap] = await Promise.all([getDocs(nameQuery), getDocs(emailQuery)]);
-        let users = [];
         const docsMap = new Map();
         [...nameSnap.docs, ...emailSnap.docs].forEach(docSnap => {
           if (!docsMap.has(docSnap.id) && docSnap.id !== currentUser.uid) {

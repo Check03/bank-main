@@ -8,27 +8,28 @@ export default function FriendsList({ onSelectFriend }) {
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchFriends = async () => {
-    if (!currentUser) return;
-    try {
-      const friendsRef = collection(db, "users", currentUser.uid, "friends");
-      const snapshot = await getDocs(friendsRef);
-      setFriends(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    if (!currentUser) return;
+    const fetchFriends = async () => {
+      try {
+        const friendsRef = collection(db, "users", currentUser.uid, "friends");
+        const snapshot = await getDocs(friendsRef);
+        setFriends(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchFriends();
   }, [currentUser]);
 
   const removeFriend = async (friendId) => {
     if (window.confirm("Удалить из друзей?")) {
       await deleteDoc(doc(db, "users", currentUser.uid, "friends", friendId));
-      fetchFriends();
+      // обновить список
+      const updated = friends.filter(f => f.id !== friendId);
+      setFriends(updated);
     }
   };
 
