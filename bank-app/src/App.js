@@ -31,7 +31,6 @@ function App() {
           <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/accounts" element={<PrivateRoute><Accounts /></PrivateRoute>} />
           <Route path="/friends" element={<PrivateRoute><div className="container"><h2>Поиск друзей</h2><SearchFriends /><h2>Мои друзья</h2><FriendsList onSelectFriend={() => {}} /></div></PrivateRoute>} />
-          <Route path="/internal-transfer" element={<PrivateRoute><InternalTransfer /></PrivateRoute>} />
           <Route path="/transfer-friend" element={<PrivateRoute><TransferToFriend /></PrivateRoute>} />
         </Routes>
       </AuthProvider>
