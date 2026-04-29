@@ -18,13 +18,11 @@ export default function Transfer() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   
-  // Для перевода по email
   const [recipientEmail, setRecipientEmail] = useState("");
   const [contacts, setContacts] = useState([]);
   const [showContacts, setShowContacts] = useState(false);
   const [convertedPreview, setConvertedPreview] = useState(null);
   
-  // Для внутреннего перевода
   const [toAccountId, setToAccountId] = useState("");
   const [internalConverted, setInternalConverted] = useState(null);
   
@@ -47,7 +45,7 @@ export default function Transfer() {
     }
   }, [accounts, selectedFromAccount]);
   
-  // Загрузка контактов (друзей)
+  // Загрузка контактов
   useEffect(() => {
     if (!currentUser) return;
     const fetchContacts = async () => {
@@ -62,7 +60,7 @@ export default function Transfer() {
     fetchContacts();
   }, [currentUser]);
   
-  // Предпросмотр конвертации для перевода по email
+  // Предпросмотр для email-перевода
   useEffect(() => {
     if (transferType !== "email" || !selectedFromAccount || !recipientEmail || !amount || amount <= 0) {
       setConvertedPreview(null);
@@ -116,57 +114,75 @@ export default function Transfer() {
   
   const fromAccount = accounts.find(acc => acc.id === selectedFromAccount);
   
-  // Обработчик перевода по email
-  const handleEmailTransfer = async (amountNum, recipientId, recipientAccountData, recipientAccountId) => {
+  // ==================== ОБРАБОТЧИК EMAIL-ПЕРЕВОДА ====================
+  const handleEmailTransfer = async ({
+    amountNum,
+    recipientId,
+    recipientAccountId,
+    recipientCurrency,
+    convertedAmount,
+  }) => {
     const senderAccountRef = doc(db, "users", currentUser.uid, "accounts", selectedFromAccount);
+    
     await runTransaction(db, async (transaction) => {
+      // 1. Читаем счёт отправителя
       const senderDocSnap = await transaction.get(senderAccountRef);
       if (!senderDocSnap.exists()) throw new Error("Счёт списания не найден");
       const senderBalance = senderDocSnap.data().balance;
-      const senderCurrency = senderDocSnap.data().currency;
       if (senderBalance < amountNum) throw new Error("Недостаточно средств");
       
-      let amountToRecipient = amountNum;
-      if (senderCurrency !== recipientAccountData.currency) {
-        amountToRecipient = await convertAmount(amountNum, senderCurrency, recipientAccountData.currency);
-      }
-      
-      transaction.update(senderAccountRef, { balance: senderBalance - amountNum });
+      // 2. Читаем счёт получателя (можно до записи, но у нас только одно чтение получателя)
       const recipientAccountRef = doc(db, "users", recipientId, "accounts", recipientAccountId);
       const recDocSnap = await transaction.get(recipientAccountRef);
-      transaction.update(recipientAccountRef, { balance: (recDocSnap.data().balance || 0) + amountToRecipient });
       
+      // 3. Выполняем записи (после всех чтений)
+      transaction.update(senderAccountRef, { balance: senderBalance - amountNum });
+      transaction.update(recipientAccountRef, { balance: (recDocSnap.data().balance || 0) + convertedAmount });
+      
+      // 4. Записываем информацию о транзакции (необязательно, но можно)
       const transactionRef = collection(db, "transactions");
       transaction.set(doc(transactionRef), {
-        from: currentUser.uid, to: recipientId,
-        fromEmail: currentUser.email, toEmail: recipientEmail,
-        fromAccountId: selectedFromAccount, fromAccountCurrency: senderCurrency,
-        toAccountId: recipientAccountId, toAccountCurrency: recipientAccountData.currency,
-        amount: amountNum, amountConverted: amountToRecipient,
-        description, timestamp: new Date()
+        from: currentUser.uid,
+        to: recipientId,
+        fromEmail: currentUser.email,
+        toEmail: recipientEmail,
+        fromAccountId: selectedFromAccount,
+        fromAccountCurrency: fromAccount?.currency,
+        toAccountId: recipientAccountId,
+        toAccountCurrency: recipientCurrency,
+        amount: amountNum,
+        amountConverted: convertedAmount,
+        description,
+        timestamp: new Date(),
       });
     });
-    return `Перевод ${amountNum} ${fromAccount?.currency} → ${recipientAccountData.currency} ${convertedPreview?.toFixed(2)} выполнен!`;
   };
   
-  // Обработчик внутреннего перевода
+  // ==================== ОБРАБОТЧИК ВНУТРЕННЕГО ПЕРЕВОДА ====================
   const handleInternalTransfer = async (amountNum, toAcc) => {
     let finalToAmount = amountNum;
     if (fromAccount.currency !== toAcc.currency) {
       finalToAmount = await convertAmount(amountNum, fromAccount.currency, toAcc.currency);
     }
+    
     await runTransaction(db, async (transaction) => {
       const fromRef = doc(db, "users", currentUser.uid, "accounts", selectedFromAccount);
       const toRef = doc(db, "users", currentUser.uid, "accounts", toAccountId);
+      
+      // Все чтения перед записями
       const fromSnap = await transaction.get(fromRef);
+      if (!fromSnap.exists()) throw new Error("Счёт отправителя не найден");
       if (fromSnap.data().balance < amountNum) throw new Error("Недостаточно средств");
-      transaction.update(fromRef, { balance: fromSnap.data().balance - amountNum });
+      
       const toSnap = await transaction.get(toRef);
+      
+      // Записи
+      transaction.update(fromRef, { balance: fromSnap.data().balance - amountNum });
       transaction.update(toRef, { balance: toSnap.data().balance + finalToAmount });
     });
-    return `Переведено ${amountNum} ${fromAccount.currency} → ${finalToAmount} ${toAcc.currency}`;
   };
   
+  // ==================== ОСНОВНОЙ ОБРАБОТЧИК ====================
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -184,8 +200,8 @@ export default function Transfer() {
     
     setLoading(true);
     try {
-      let successMessage = "";
       if (transferType === "email") {
+        // Валидация email-перевода
         if (!recipientEmail) {
           setError("Введите email получателя");
           setLoading(false);
@@ -196,6 +212,8 @@ export default function Transfer() {
           setLoading(false);
           return;
         }
+        
+        // 1. Найти получателя
         const usersRef = collection(db, "users");
         const qUser = query(usersRef, where("email", "==", recipientEmail));
         const userSnap = await getDocs(qUser);
@@ -203,6 +221,7 @@ export default function Transfer() {
         const recipientUser = userSnap.docs[0];
         const recipientId = recipientUser.id;
         
+        // 2. Найти его основной счёт (или первый)
         const recipientAccountsRef = collection(db, "users", recipientId, "accounts");
         const recAccSnap = await getDocs(recipientAccountsRef);
         if (recAccSnap.empty) throw new Error("У получателя нет счетов");
@@ -211,9 +230,27 @@ export default function Transfer() {
         const recipientAccountData = recipientAccount.data();
         const recipientAccountId = recipientAccount.id;
         
-        successMessage = await handleEmailTransfer(amountNum, recipientId, recipientAccountData, recipientAccountId);
+        // 3. Вычислить конвертированную сумму (ВНЕ транзакции!)
+        let amountToRecipient = amountNum;
+        if (fromAccount.currency !== recipientAccountData.currency) {
+          amountToRecipient = await convertAmount(amountNum, fromAccount.currency, recipientAccountData.currency);
+        }
+        
+        // 4. Выполнить транзакцию с уже готовой суммой
+        await handleEmailTransfer({
+          amountNum,
+          recipientId,
+          recipientAccountId,
+          recipientCurrency: recipientAccountData.currency,
+          convertedAmount: amountToRecipient,
+        });
+        
+        setSuccess(`Перевод ${amountNum} ${fromAccount?.currency} → ${amountToRecipient.toFixed(2)} ${recipientAccountData.currency} выполнен!`);
         setRecipientEmail("");
-      } else {
+      } 
+      
+      else {
+        // Внутренний перевод
         if (!toAccountId) {
           setError("Выберите счёт зачисления");
           setLoading(false);
@@ -226,15 +263,19 @@ export default function Transfer() {
         }
         const toAcc = accounts.find(a => a.id === toAccountId);
         if (!toAcc) throw new Error("Счёт получателя не найден");
-        successMessage = await handleInternalTransfer(amountNum, toAcc);
+        
+        await handleInternalTransfer(amountNum, toAcc);
+        const finalToAmount = (toAcc.currency !== fromAccount.currency) 
+          ? await convertAmount(amountNum, fromAccount.currency, toAcc.currency)
+          : amountNum;
+        setSuccess(`Переведено ${amountNum} ${fromAccount.currency} → ${finalToAmount.toFixed(2)} ${toAcc.currency}`);
         setToAccountId("");
       }
       
-      setSuccess(successMessage);
       setAmount("");
       setDescription("");
       
-      // Обновить балансы счетов
+      // Обновить список счетов (балансы)
       const snapshot = await getDocs(collection(db, "users", currentUser.uid, "accounts"));
       setAccounts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       
