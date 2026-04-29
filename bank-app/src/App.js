@@ -10,8 +10,6 @@ import Contacts from "./components/Contacts";
 import Admin from "./components/Admin";
 import Account from "./components/Account";   
 import Accounts from "./components/Accounts";
-import SearchFriends from "./components/Friends/SearchFriends";
-import FriendsList from "./components/Friends/FriendsList";
 
 function App() {
   return (
