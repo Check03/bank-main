@@ -25,7 +25,7 @@ function App() {
           <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />  
           <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-          <Route path="/accounts" element={<PrivateRoute><Accounts /></PrivateRoute>} />
+          <Route path="/" accounts element={<PrivateRoute><Accounts /></PrivateRoute>} />
         </Routes>
       </AuthProvider>
     </Router>
