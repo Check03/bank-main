@@ -436,3 +436,73 @@ button:active {
   color: #e2e8f0;
 }
 
+/* Более компактный вид на телефонах */
+@media (max-width: 640px) {
+  body {
+    font-size: 13px; /* чуть мельче основной текст */
+  }
+
+  .container {
+    padding: 0 0.5rem; /* уменьшили боковые отступы */
+  }
+
+  .card {
+    padding: 0.75rem !important; /* уменьшили внутренние отступы карточек */
+    margin-bottom: 1rem !important;
+    border-radius: 10px !important;
+  }
+
+  h2 {
+    font-size: 1.2rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  h3 {
+    font-size: 1rem !important;
+  }
+
+  /* Кнопки и поля ввода */
+  button, .button-primary, .logout-btn, .btn-rename, .btn-make-main, .btn-delete,
+  input, select {
+    padding: 0.5rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  /* Убираем лишний отступ у форм */
+  form {
+    gap: 0.75rem !important;
+  }
+
+  /* Компактнее список счетов на дашборде и в контактах */
+  .account-card, .friends-list > div {
+    padding: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  .account-balance {
+    font-size: 1.1rem !important;
+  }
+
+  /* Таблица транзакций компактнее */
+  .transaction-item {
+    padding: 0.5rem 0 !important;
+  }
+  .transaction-amount {
+    font-size: 0.9rem !important;
+  }
+  .transaction-info {
+    font-size: 0.8rem !important;
+  }
+  .transaction-details {
+    font-size: 0.7rem !important;
+  }
+
+  /* Переключатели типа перевода (сегментированные кнопки) */
+  .transfer-type-toggle {
+    margin-bottom: 0.75rem !important;
+  }
+  .transfer-type-option label {
+    padding: 0.4rem 0.5rem !important;
+    font-size: 0.8rem !important;
+  }
+}
