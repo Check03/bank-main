@@ -115,11 +115,7 @@ export default function Dashboard() {
               <div style={{ flex: "2", textAlign: "center", fontSize: "1.8rem", fontWeight: "bold", background: "linear-gradient(135deg, #60a5fa, #a855f7)", backgroundClip: "text", WebkitBackgroundClip: "text", color: "transparent", wordBreak: "break-word" }}>
                 {acc.balance?.toLocaleString()} {currencySymbols[acc.currency] || acc.currency}
               </div>
-              {!acc.isDefault && (
-                <div style={{ flex: "1", textAlign: "right" }}>
-                  <button onClick={() => setDefaultAccount(acc.id)} style={{ background: "#334155" }}>Сделать основным</button>
-                </div>
-              )}
+              
             </div>
           ))}
         </div>
