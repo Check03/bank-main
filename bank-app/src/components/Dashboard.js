@@ -91,18 +91,7 @@ export default function Dashboard() {
     fetchAccounts();
   }, [currentUser]);
 
-  const setDefaultAccount = async (accountId) => {
-    try {
-      const updates = accounts.map(acc => {
-        const ref = doc(db, "users", currentUser.uid, "accounts", acc.id);
-        return updateDoc(ref, { isDefault: acc.id === accountId });
-      });
-      await Promise.all(updates);
-      setAccounts(accounts.map(acc => ({ ...acc, isDefault: acc.id === accountId })));
-    } catch (err) {
-      setError("Не удалось сменить основной счёт");
-    }
-  };
+  
 
   if (loading) return <div className="loader"></div>;
   if (error) return <div className="error-message">{error}</div>;
