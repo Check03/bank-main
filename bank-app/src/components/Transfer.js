@@ -20,7 +20,6 @@ export default function Transfer() {
   const [showContacts, setShowContacts] = useState(false);
 
   // Загрузка счетов отправителя
-  // Загрузка счетов отправителя
 useEffect(() => {
   if (!currentUser) return;
   const fetchAccounts = async () => {
