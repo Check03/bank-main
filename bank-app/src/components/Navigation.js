@@ -35,8 +35,6 @@ export default function Navigation() {
           <Link to="/contacts" className="link" onClick={() => setIsOpen(false)}>Контакты</Link>
           <Link to="/account" className="link" onClick={() => setIsOpen(false)}>Аккаунт</Link>
           {isAdmin && <Link to="/admin" className="link" onClick={() => setIsOpen(false)}>Админка</Link>}
-          <Link to="/transfer-friend" className="link">Перевод другу</Link>
-          <Link to="/friends" className="link">Друзья</Link>
         </div>
       </div>
     </nav>

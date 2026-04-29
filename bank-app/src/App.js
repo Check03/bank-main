@@ -12,7 +12,6 @@ import Account from "./components/Account";
 import Accounts from "./components/Accounts";
 import SearchFriends from "./components/Friends/SearchFriends";
 import FriendsList from "./components/Friends/FriendsList";
-import TransferToFriend from "./components/TransferToFriend";
 
 function App() {
   return (
@@ -29,8 +28,6 @@ function App() {
           <Route path="/account" element={<PrivateRoute><Account /></PrivateRoute>} />   
           <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/accounts" element={<PrivateRoute><Accounts /></PrivateRoute>} />
-          <Route path="/friends" element={<PrivateRoute><div className="container"><h2>Поиск друзей</h2><SearchFriends /><h2>Мои друзья</h2><FriendsList onSelectFriend={() => {}} /></div></PrivateRoute>} />
-          <Route path="/transfer-friend" element={<PrivateRoute><TransferToFriend /></PrivateRoute>} />
         </Routes>
       </AuthProvider>
     </Router>
