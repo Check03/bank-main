@@ -3,20 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
 import { doc, runTransaction, collection, getDocs, query, where } from "firebase/firestore";
-
-// Курсы обмена (RUB как базовая)
-const exchangeRates = {
-  RUB: 1,
-  USD: 90,
-  EUR: 100
-};
-
-// Конвертация суммы из одной валюты в другую
-const convertCurrency = (amount, fromCurrency, toCurrency) => {
-  if (fromCurrency === toCurrency) return amount;
-  const amountInRUB = amount / exchangeRates[fromCurrency];
-  return amountInRUB * exchangeRates[toCurrency];
-};
+import { convertAmount } from "../utils/currencyRates";
 
 export default function Transfer() {
   const { currentUser } = useAuth();
@@ -46,14 +33,14 @@ export default function Transfer() {
       }
     };
     fetchAccounts();
-  }, [currentUser, selectedFromAccount]);
+  }, [currentUser]);
 
-  // Загрузка контактов
+  // Загрузка контактов (друзей)
   useEffect(() => {
     if (!currentUser) return;
     const fetchContacts = async () => {
       try {
-        const contactsRef = collection(db, "users", currentUser.uid, "contacts");
+        const contactsRef = collection(db, "users", currentUser.uid, "friends");
         const snapshot = await getDocs(contactsRef);
         const contactsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setContacts(contactsList);
@@ -113,7 +100,7 @@ export default function Transfer() {
 
       // 3. Данные счёта отправителя
       const senderAccountRef = doc(db, "users", currentUser.uid, "accounts", selectedFromAccount);
-      // Используем runTransaction
+
       await runTransaction(db, async (transaction) => {
         const senderDocSnap = await transaction.get(senderAccountRef);
         if (!senderDocSnap.exists()) throw new Error("Счёт списания не найден");
@@ -121,11 +108,11 @@ export default function Transfer() {
         const senderCurrency = senderDocSnap.data().currency;
         if (senderBalance < amountNum) throw new Error("Недостаточно средств на счёте");
 
-        // Конвертация суммы в валюту счёта получателя
+        // Конвертация суммы в валюту счёта получателя (через реальный API)
         const recipientCurrency = recipientAccountData.currency;
         let amountToRecipient = amountNum;
         if (senderCurrency !== recipientCurrency) {
-          amountToRecipient = convertCurrency(amountNum, senderCurrency, recipientCurrency);
+          amountToRecipient = await convertAmount(amountNum, senderCurrency, recipientCurrency);
         }
 
         // Обновление балансов
@@ -135,7 +122,7 @@ export default function Transfer() {
         const newRecBalance = (recDocSnap.data().balance || 0) + amountToRecipient;
         transaction.update(recipientAccountRef, { balance: newRecBalance });
 
-        // Запись транзакции (с информацией о валютах и счетах)
+        // Запись транзакции
         const transactionRef = collection(db, "transactions");
         transaction.set(doc(transactionRef), {
           from: currentUser.uid,
@@ -153,7 +140,7 @@ export default function Transfer() {
         });
       });
 
-      setSuccess(`Перевод ${amountNum} ₽ (или эквивалент) выполнен!`);
+      setSuccess(`Перевод ${amountNum} ${accounts.find(a => a.id === selectedFromAccount)?.currency} → ${recipientAccountData.currency} ${convertedAmountPreview} выполнен!`);
       setRecipientEmail("");
       setAmount("");
       setDescription("");
@@ -172,6 +159,37 @@ export default function Transfer() {
 
   const fromAccount = accounts.find(acc => acc.id === selectedFromAccount);
 
+  // Для отображения примерной конвертации (необязательно)
+  const [convertedAmountPreview, setConvertedAmountPreview] = useState(null);
+  useEffect(() => {
+    if (!fromAccount || !recipientEmail || !amount || amount <= 0) {
+      setConvertedAmountPreview(null);
+      return;
+    }
+    const fetchPreview = async () => {
+      try {
+        // быстро ищем получателя для preview (без транзакции)
+        const usersRef = collection(db, "users");
+        const qUser = query(usersRef, where("email", "==", recipientEmail));
+        const userSnap = await getDocs(qUser);
+        if (!userSnap.empty) {
+          const recId = userSnap.docs[0].id;
+          const recAccSnap = await getDocs(collection(db, "users", recId, "accounts"));
+          const recAccount = recAccSnap.docs.find(d => d.data().isDefault) || recAccSnap.docs[0];
+          if (recAccount && recAccount.data().currency !== fromAccount.currency) {
+            const converted = await convertAmount(parseFloat(amount), fromAccount.currency, recAccount.data().currency);
+            setConvertedAmountPreview(converted);
+            return;
+          }
+        }
+        setConvertedAmountPreview(null);
+      } catch (err) {
+        setConvertedAmountPreview(null);
+      }
+    };
+    fetchPreview();
+  }, [fromAccount, recipientEmail, amount]);
+
   return (
     <div className="container" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh" }}>
       <div className="card" style={{ maxWidth: "600px", width: "100%" }}>
@@ -187,8 +205,8 @@ export default function Transfer() {
             {showContacts && (
               <ul style={{ listStyle: "none", padding: 0, marginTop: "0.5rem", background: "#0f172a", borderRadius: "12px" }}>
                 {contacts.map(contact => (
-                  <li key={contact.id} onClick={() => selectContact(contact.contactEmail)} style={{ padding: "0.5rem", borderBottom: "1px solid #334155", cursor: "pointer" }}>
-                    {contact.contactName} ({contact.contactEmail})
+                  <li key={contact.id} onClick={() => selectContact(contact.friendEmail)} style={{ padding: "0.5rem", borderBottom: "1px solid #334155", cursor: "pointer" }}>
+                    {contact.friendName} ({contact.friendEmail})
                   </li>
                 ))}
               </ul>
@@ -212,6 +230,9 @@ export default function Transfer() {
           <div>
             <label>Сумма в валюте счёта списания ({fromAccount?.currency})</label>
             <input type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+            {convertedAmountPreview !== null && amount > 0 && (
+              <small>Получатель получит ≈ {convertedAmountPreview} (в валюте его счёта)</small>
+            )}
           </div>
           <div>
             <label>Описание (необязательно)</label>

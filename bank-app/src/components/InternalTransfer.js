@@ -69,7 +69,7 @@ export default function InternalTransfer() {
         const toRef = doc(db, "users", currentUser.uid, "accounts", toAccountId);
         const fromSnap = await transaction.get(fromRef);
         if (!fromSnap.exists()) throw new Error("Счёт отправителя не найден");
-        if (fromSnap.data().balance < amountNum) throw new Error("Недостаточно средств на счёте");
+        if (fromSnap.data().balance < amountNum) throw new Error("Недостаточно средств");
         transaction.update(fromRef, { balance: fromSnap.data().balance - amountNum });
         const toSnap = await transaction.get(toRef);
         transaction.update(toRef, { balance: toSnap.data().balance + finalToAmount });
@@ -96,11 +96,11 @@ export default function InternalTransfer() {
       <form onSubmit={handleTransfer} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
         <select value={fromAccountId} onChange={e => setFromAccountId(e.target.value)} required>
           <option value="">Счёт списания</option>
-          {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name} ({acc.currency}) – {acc.balance} {acc.currency}</option>)}
+          {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name} ({acc.currency}) – {acc.balance?.toLocaleString()} {acc.currency}</option>)}
         </select>
         <select value={toAccountId} onChange={e => setToAccountId(e.target.value)} required>
           <option value="">Счёт зачисления</option>
-          {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name} ({acc.currency}) – {acc.balance} {acc.currency}</option>)}
+          {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name} ({acc.currency}) – {acc.balance?.toLocaleString()} {acc.currency}</option>)}
         </select>
         <input type="number" placeholder="Сумма" value={amount} onChange={e => setAmount(e.target.value)} required step="0.01" />
         {convertedAmount !== null && amount > 0 && (

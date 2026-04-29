@@ -12,7 +12,6 @@ export async function getExchangeRates() {
       RUB: 1,
       USD: data.rates.USD,
       EUR: data.rates.EUR,
-      // можно добавить другие валюты
     };
     lastFetch = Date.now();
     return cachedRates;
@@ -25,7 +24,6 @@ export async function getExchangeRates() {
 export async function convertAmount(amount, fromCurrency, toCurrency) {
   if (fromCurrency === toCurrency) return amount;
   const rates = await getExchangeRates();
-  // переводим amount из fromCurrency в RUB, затем в toCurrency
   const amountInRUB = amount / rates[fromCurrency];
   const converted = amountInRUB * rates[toCurrency];
   return parseFloat(converted.toFixed(2));
