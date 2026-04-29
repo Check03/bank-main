@@ -258,15 +258,29 @@ export default function Transfer() {
         {error && <div className="error-message">{error}</div>}
         {success && <div className="success-message">{success}</div>}
         
-        <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem", justifyContent: "center" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <input type="radio" value="email" checked={transferType === "email"} onChange={() => setTransferType("email")} />
-            Перевод по email
-          </label>
-          <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <input type="radio" value="internal" checked={transferType === "internal"} onChange={() => setTransferType("internal")} />
-            Между своими счетами
-          </label>
+        <div className="transfer-type-toggle">
+          <div className="transfer-type-option">
+            <input
+              type="radio"
+              id="transfer-email"
+              name="transferType"
+              value="email"
+              checked={transferType === "email"}
+              onChange={() => setTransferType("email")}
+            />
+            <label htmlFor="transfer-email">Перевод по email</label>
+          </div>
+          <div className="transfer-type-option">
+            <input
+              type="radio"
+              id="transfer-internal"
+              name="transferType"
+              value="internal"
+              checked={transferType === "internal"}
+              onChange={() => setTransferType("internal")}
+            />
+            <label htmlFor="transfer-internal">Между своими счетами</label>
+          </div>
         </div>
         
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
