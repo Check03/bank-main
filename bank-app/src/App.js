@@ -8,8 +8,13 @@ import Dashboard from "./components/Dashboard";
 import Transfer from "./components/Transfer";
 import Contacts from "./components/Contacts";
 import Admin from "./components/Admin";
-import Account from "./components/Account";   // ← добавить импорт
+import Account from "./components/Account";   
 import Accounts from "./components/Accounts";
+import SearchFriends from "./components/Friends/SearchFriends";
+import FriendsList from "./components/Friends/FriendsList";
+import InternalTransfer from "./components/InternalTransfer";
+import TransferToFriend from "./components/TransferToFriend";
+
 function App() {
   return (
     <Router>
@@ -25,6 +30,9 @@ function App() {
           <Route path="/account" element={<PrivateRoute><Account /></PrivateRoute>} />   
           <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/accounts" element={<PrivateRoute><Accounts /></PrivateRoute>} />
+          <Route path="/friends" element={<PrivateRoute><div className="container"><h2>Поиск друзей</h2><SearchFriends /><h2>Мои друзья</h2><FriendsList onSelectFriend={() => {}} /></div></PrivateRoute>} />
+          <Route path="/internal-transfer" element={<PrivateRoute><InternalTransfer /></PrivateRoute>} />
+          <Route path="/transfer-friend" element={<PrivateRoute><TransferToFriend /></PrivateRoute>} />
         </Routes>
       </AuthProvider>
     </Router>

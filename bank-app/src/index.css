@@ -372,3 +372,22 @@ button:active {
     font-size: 1.4rem;
   }
 }
+
+/* Стили для списка друзей и поиска */
+.search-friends ul {
+  max-height: 200px;
+  overflow-y: auto;
+}
+.friends-list button {
+  margin-left: 0.5rem;
+}
+@media (max-width: 640px) {
+  .friends-list div {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  .friends-list button {
+    width: 100%;
+  }
+}
