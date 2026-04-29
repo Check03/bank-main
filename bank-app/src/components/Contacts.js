@@ -10,7 +10,6 @@ export default function Contacts() {
   const [contacts, setContacts] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
   // Загрузка списка контактов и всех пользователей
