@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
-import { collection, getDocs, addDoc, serverTimestamp, doc, getDoc, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, addDoc, serverTimestamp, doc, getDoc, deleteDoc, onSnapshot } from "firebase/firestore";
 
 export default function Contacts() {
   const { currentUser } = useAuth();
@@ -10,26 +10,30 @@ export default function Contacts() {
   const [contacts, setContacts] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(false);   // ← возвращаем
+  const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
-  // Загрузка контактов и всех пользователей
+  // Подписка на список всех пользователей (в реальном времени)
   useEffect(() => {
     if (!currentUser) return;
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const contactsSnapshot = await getDocs(collection(db, "users", currentUser.uid, "friends"));
-        setContacts(contactsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-        const usersSnapshot = await getDocs(collection(db, "users"));
-        setAllUsers(usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      } catch (err) {
-        console.error(err);
-      } finally {
+    const unsubscribe = onSnapshot(collection(db, "users"), (snapshot) => {
+      const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setAllUsers(users);
+    });
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  // Подписка на контакты пользователя
+  useEffect(() => {
+    if (!currentUser) return;
+    const unsubscribe = onSnapshot(
+      collection(db, "users", currentUser.uid, "friends"),
+      (snapshot) => {
+        setContacts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         setLoading(false);
       }
-    };
-    fetchData();
+    );
+    return () => unsubscribe();
   }, [currentUser]);
 
   // Поиск (фильтрация на клиенте)
@@ -55,8 +59,6 @@ export default function Contacts() {
       setMessage(`Контакт ${friendData.name} добавлен`);
       setTimeout(() => setMessage(""), 3000);
       setSearchTerm("");
-      const snapshot = await getDocs(collection(db, "users", currentUser.uid, "friends"));
-      setContacts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     } catch (err) {
       setMessage("Ошибка добавления контакта");
     }
@@ -66,7 +68,6 @@ export default function Contacts() {
     if (!window.confirm("Удалить контакт?")) return;
     try {
       await deleteDoc(doc(db, "users", currentUser.uid, "friends", contactId));
-      setContacts(contacts.filter(c => c.id !== contactId));
       setMessage("Контакт удалён");
       setTimeout(() => setMessage(""), 3000);
     } catch (err) {
@@ -77,6 +78,8 @@ export default function Contacts() {
   const transferToContact = (email) => {
     navigate("/transfer", { state: { email } });
   };
+
+  if (loading) return <div className="loader"></div>;
 
   return (
     <div className="container" style={{ maxWidth: "800px", margin: "2rem auto" }}>
@@ -92,8 +95,7 @@ export default function Contacts() {
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ width: "100%", padding: "0.75rem", borderRadius: "8px", border: "1px solid #ccc" }}
           />
-          {loading && <div className="loader" style={{ margin: "1rem auto" }}></div>}
-          {!loading && searchTerm.length >= 2 && searchResults.length > 0 && (
+          {searchTerm.length >= 2 && searchResults.length > 0 && (
             <ul style={{ listStyle: "none", background: "#f8fafc", borderRadius: "8px", marginTop: "0.5rem", padding: "0.5rem" }}>
               {searchResults.map(user => (
                 <li key={user.id} style={{ padding: "0.75rem", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -103,7 +105,7 @@ export default function Contacts() {
               ))}
             </ul>
           )}
-          {!loading && searchTerm.length >= 2 && searchResults.length === 0 && (
+          {searchTerm.length >= 2 && searchResults.length === 0 && (
             <p style={{ marginTop: "0.5rem", fontSize: "0.85rem", color: "#6b7280" }}>Ничего не найдено</p>
           )}
         </div>
