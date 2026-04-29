@@ -10,23 +10,29 @@ export default function Contacts() {
   const [contacts, setContacts] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(false);   // ← возвращаем
   const [message, setMessage] = useState("");
 
-  // Загрузка списка контактов и всех пользователей
+  // Загрузка контактов и всех пользователей
   useEffect(() => {
     if (!currentUser) return;
     const fetchData = async () => {
-      // Загружаем контакты текущего пользователя
-      const contactsSnapshot = await getDocs(collection(db, "users", currentUser.uid, "friends"));
-      setContacts(contactsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      // Загружаем всех пользователей (для поиска)
-      const usersSnapshot = await getDocs(collection(db, "users"));
-      setAllUsers(usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setLoading(true);
+      try {
+        const contactsSnapshot = await getDocs(collection(db, "users", currentUser.uid, "friends"));
+        setContacts(contactsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const usersSnapshot = await getDocs(collection(db, "users"));
+        setAllUsers(usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, [currentUser]);
 
-  // Поиск среди всех пользователей (фильтрация на клиенте, без индексов)
+  // Поиск (фильтрация на клиенте)
   const searchResults = allUsers.filter(user =>
     user.id !== currentUser?.uid &&
     !contacts.some(c => c.friendId === user.id) &&
@@ -34,7 +40,6 @@ export default function Contacts() {
      user.email?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // Добавление в контакты
   const addContact = async (user) => {
     try {
       const friendRef = doc(db, "users", user.id);
@@ -50,7 +55,6 @@ export default function Contacts() {
       setMessage(`Контакт ${friendData.name} добавлен`);
       setTimeout(() => setMessage(""), 3000);
       setSearchTerm("");
-      // Обновить список контактов
       const snapshot = await getDocs(collection(db, "users", currentUser.uid, "friends"));
       setContacts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     } catch (err) {
@@ -58,7 +62,6 @@ export default function Contacts() {
     }
   };
 
-  // Удаление контакта
   const removeContact = async (contactId) => {
     if (!window.confirm("Удалить контакт?")) return;
     try {
@@ -71,7 +74,6 @@ export default function Contacts() {
     }
   };
 
-  // Переход к переводу
   const transferToContact = (email) => {
     navigate("/transfer", { state: { email } });
   };
@@ -82,7 +84,6 @@ export default function Contacts() {
         <h2>Контакты</h2>
         {message && <div className="success-message">{message}</div>}
 
-        {/* Поиск (работает без индексов) */}
         <div style={{ marginBottom: "2rem" }}>
           <input
             type="text"
@@ -91,7 +92,8 @@ export default function Contacts() {
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ width: "100%", padding: "0.75rem", borderRadius: "8px", border: "1px solid #ccc" }}
           />
-          {searchTerm.length >= 2 && searchResults.length > 0 && (
+          {loading && <div className="loader" style={{ margin: "1rem auto" }}></div>}
+          {!loading && searchTerm.length >= 2 && searchResults.length > 0 && (
             <ul style={{ listStyle: "none", background: "#f8fafc", borderRadius: "8px", marginTop: "0.5rem", padding: "0.5rem" }}>
               {searchResults.map(user => (
                 <li key={user.id} style={{ padding: "0.75rem", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -101,12 +103,11 @@ export default function Contacts() {
               ))}
             </ul>
           )}
-          {searchTerm.length >= 2 && searchResults.length === 0 && !loading && (
+          {!loading && searchTerm.length >= 2 && searchResults.length === 0 && (
             <p style={{ marginTop: "0.5rem", fontSize: "0.85rem", color: "#6b7280" }}>Ничего не найдено</p>
           )}
         </div>
 
-        {/* Список контактов */}
         <h3>Мои контакты</h3>
         {contacts.length === 0 ? (
           <p>Контактов пока нет. Найдите пользователей через поиск.</p>
