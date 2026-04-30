@@ -18,7 +18,7 @@ export default function Register() {
     setLoading(true);
 
     try {
-      // Пытаемся создать нового пользователя
+      // Попытка создания нового пользователя
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
@@ -43,14 +43,14 @@ export default function Register() {
       navigate("/dashboard");
     } catch (err) {
       if (err.code === "auth/email-already-in-use") {
-        // Email уже зарегистрирован в Auth, пробуем войти
+        // Email уже существует в Auth, пробуем войти с введённым паролем
         try {
           const userCredential = await signInWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
           const userDoc = await getDoc(doc(db, "users", user.uid));
 
           if (!userDoc.exists()) {
-            // Восстанавливаем недостающий документ
+            // Восстанавливаем документ пользователя
             await setDoc(doc(db, "users", user.uid), {
               name: name,
               email: email,
@@ -59,7 +59,7 @@ export default function Register() {
             });
           }
 
-          // Проверяем, есть ли счета
+          // Проверяем наличие счетов
           const accountsRef = collection(db, "users", user.uid, "accounts");
           const accountsSnap = await getDocs(accountsRef);
           if (accountsSnap.empty) {
@@ -74,12 +74,12 @@ export default function Register() {
 
           navigate("/dashboard");
         } catch (signInErr) {
-          // Пароль не подходит – предложить войти
+          // Пароль неверный – предложить восстановление пароля
           setError(
             <div>
-              Этот email уже зарегистрирован. Если вы забыли пароль, воспользуйтесь 
-              <a href="https://firebase.google.com/docs/auth/web/password-reset" target="_blank" rel="noreferrer"> восстановлением пароля</a>.
-              Или <Link to="/login">войдите</Link> с правильным паролем.
+              Этот email уже зарегистрирован. Если вы забыли пароль, перейдите на страницу{" "}
+              <Link to="/login?reset=1">восстановления пароля</Link>. Или{" "}
+              <Link to="/login">войдите</Link> с правильным паролем.
             </div>
           );
         }
@@ -97,10 +97,31 @@ export default function Register() {
         <h2>Регистрация</h2>
         {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <input type="text" placeholder="Ваше имя" value={name} onChange={e => setName(e.target.value)} required />
-          <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
-          <input type="password" placeholder="Пароль (минимум 6 символов)" value={password} onChange={e => setPassword(e.target.value)} required minLength="6" />
-          <button type="submit" disabled={loading} className="button-primary">{loading ? "Регистрация..." : "Зарегистрироваться"}</button>
+          <input
+            type="text"
+            placeholder="Ваше имя"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Пароль (минимум 6 символов)"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength="6"
+          />
+          <button type="submit" disabled={loading} className="button-primary">
+            {loading ? "Регистрация..." : "Зарегистрироваться"}
+          </button>
         </form>
         <p style={{ marginTop: "1rem", textAlign: "center" }}>
           Уже есть аккаунт? <Link to="/login">Войти</Link>
