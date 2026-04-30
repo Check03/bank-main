@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { createUserWithEmailAndPassword, deleteUser } from "firebase/auth";
-import { doc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc, collection, getDoc, getDocs } from "firebase/firestore";
 import { auth, db } from "../firebase";
 
 export default function Register() {
@@ -17,43 +17,12 @@ export default function Register() {
     setError("");
     setLoading(true);
 
-    // Сначала создаём пользователя в Auth
-    let user;
     try {
+      // Пытаемся создать нового пользователя
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      user = userCredential.user;
-    } catch (err) {
-      if (err.code === "auth/email-already-in-use") {
-        setError("Пользователь с таким email уже существует");
-      } else {
-        setError("Ошибка регистрации");
-      }
-      setLoading(false);
-      return;
-    }
+      const user = userCredential.user;
 
-    // Теперь проверяем уникальность имени (пользователь уже аутентифицирован)
-    try {
-      const usersRef = collection(db, "users");
-      const q = query(usersRef, where("name", "==", name));
-      const snapshot = await getDocs(q);
-      if (!snapshot.empty) {
-        // Имя занято – удаляем только что созданного пользователя и сообщаем ошибку
-        await deleteUser(user);
-        setError("Пользователь с таким именем уже существует");
-        setLoading(false);
-        return;
-      }
-    } catch (err) {
-      // Если ошибка при проверке – тоже удаляем пользователя и сообщаем
-      await deleteUser(user);
-      setError("Ошибка проверки имени. Попробуйте ещё раз.");
-      setLoading(false);
-      return;
-    }
-
-    // Имя уникально – сохраняем данные в Firestore
-    try {
+      // Сохраняем данные в Firestore
       await setDoc(doc(db, "users", user.uid), {
         name: name,
         email: email,
@@ -61,6 +30,7 @@ export default function Register() {
         createdAt: new Date().toISOString()
       });
 
+      // Создаём первый счёт
       const accountsRef = collection(db, "users", user.uid, "accounts");
       await setDoc(doc(accountsRef, "main"), {
         name: "Основной",
@@ -72,10 +42,50 @@ export default function Register() {
 
       navigate("/dashboard");
     } catch (err) {
-      // Если не удалось сохранить – удаляем пользователя
-      await deleteUser(user);
-      setError("Ошибка создания профиля");
-      setLoading(false);
+      if (err.code === "auth/email-already-in-use") {
+        // Email уже зарегистрирован в Auth, пробуем войти
+        try {
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+
+          if (!userDoc.exists()) {
+            // Восстанавливаем недостающий документ
+            await setDoc(doc(db, "users", user.uid), {
+              name: name,
+              email: email,
+              role: "user",
+              createdAt: new Date().toISOString()
+            });
+          }
+
+          // Проверяем, есть ли счета
+          const accountsRef = collection(db, "users", user.uid, "accounts");
+          const accountsSnap = await getDocs(accountsRef);
+          if (accountsSnap.empty) {
+            await setDoc(doc(accountsRef, "main"), {
+              name: "Основной",
+              currency: "RUB",
+              balance: 10000,
+              isDefault: true,
+              createdAt: new Date().toISOString()
+            });
+          }
+
+          navigate("/dashboard");
+        } catch (signInErr) {
+          // Пароль не подходит – предложить войти
+          setError(
+            <div>
+              Этот email уже зарегистрирован. Если вы забыли пароль, воспользуйтесь 
+              <a href="https://firebase.google.com/docs/auth/web/password-reset" target="_blank" rel="noreferrer"> восстановлением пароля</a>.
+              Или <Link to="/login">войдите</Link> с правильным паролем.
+            </div>
+          );
+        }
+      } else {
+        setError("Ошибка регистрации. Попробуйте ещё раз.");
+      }
     } finally {
       setLoading(false);
     }
